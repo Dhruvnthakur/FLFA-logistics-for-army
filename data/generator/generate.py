@@ -48,7 +48,8 @@ DEMAND = {
 }
 
 # id, name, from, to, distance_km, terrain_difficulty (1-5), base_speed_kmh
-# Route A (direct, high pass) is shorter; Route B (via Post 5) is the longer, lower alternative.
+# Route A (direct, high pass) is shorter; Route B (via Post 5) is the long winding valley alternative —
+# long enough that closing Route A adds ~2 days of lead time to Post 7 (the demo).
 EDGES = [
     ("E1", "Northern Supply Line", "BD1", "FD1", 420, 2, 40),
     ("E2", "Eastern Supply Line", "BD1", "FD2", 2400, 2, 45),
@@ -59,7 +60,7 @@ EDGES = [
     ("E7", "Route B (leg 1)", "FD1", "P5", 85, 2, 35),
     ("E8", "FD1 - Post 6", "FD1", "P6", 230, 3, 30),
     ("E9", "Route A", "FD1", "P7", 140, 5, 30),
-    ("E10", "Route B (leg 2)", "P5", "P7", 95, 3, 25),
+    ("E10", "Route B (leg 2)", "P5", "P7", 260, 4, 20),
     ("E11", "FD2 - Post 8", "FD2", "P8", 85, 3, 28),
     ("E12", "FD2 - Post 9", "FD2", "P9", 90, 4, 24),
     ("E13", "FD2 - Post 10", "FD2", "P10", 135, 3, 30),
@@ -137,7 +138,8 @@ def stock(rng, history):
     rows = []
     for (pid, item), avg in recent.items():
         days = DEMO_P7_DIESEL_DAYS if (pid, item) == ("P7", "diesel") else rng.uniform(18, 35)
-        rows.append((pid, item, round(avg * days, 1), round(avg * 5, 1)))
+        # safety stock = 2 days: below every route lead time, so lead time (not the floor) decides Red
+        rows.append((pid, item, round(avg * days, 1), round(avg * 2, 1)))
 
     region_of = {l[0]: l[3] for l in LOCATIONS}
     depots = {"BD1": None, "FD1": "Ladakh", "FD2": "Arunachal"}  # None = serves every post

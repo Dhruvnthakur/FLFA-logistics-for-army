@@ -5,19 +5,22 @@ from fastapi.testclient import TestClient
 from app.db import get_conn
 from app.main import app
 from app.services.forecasting import daily_demand
-from app.services.stock import BUFFER_DAYS, LEAD_TIME_DAYS, status
+from app.services.stock import BUFFER_DAYS, HANDLING_DAYS, lead_time_days, status
 
 c = TestClient(app)
 
 
 def test_status_thresholds():
-    lt, amber_top = LEAD_TIME_DAYS, LEAD_TIME_DAYS + BUFFER_DAYS
-    assert status(100, 10, amber_top + 1) == "green"
-    assert status(100, 10, amber_top - 0.1) == "amber"
-    assert status(100, 10, lt - 0.1) == "red"          # runs out before resupply lands
-    assert status(5, 10, amber_top + 10) == "red"      # below safety stock wins over a healthy forecast
-    assert status(100, 10, None) == "green"            # depot: no forecast, safety stock decides
-    assert status(5, 10, None) == "red"
+    lt = 3.0
+    amber_top = lt + BUFFER_DAYS
+    assert status(100, 10, amber_top + 1, lt) == "green"
+    assert status(100, 10, amber_top - 0.1, lt) == "amber"
+    assert status(100, 10, lt - 0.1, lt) == "red"          # runs out before resupply lands
+    assert status(5, 10, amber_top + 10, lt) == "red"      # below safety stock wins over a healthy forecast
+    assert status(100, 10, None, lt) == "green"            # depot: no forecast, safety stock decides
+    assert status(5, 10, None, lt) == "red"
+    assert status(100, 10, 365, lead_time_days(None)) == "red"  # no open route: nothing lands in time
+    assert lead_time_days(0) == HANDLING_DAYS
 
 
 def reading(qty, **kw):
@@ -36,8 +39,12 @@ def test_alert_transitions_and_dedup():
         daily = daily_demand(conn, "P7", "diesel")[1]
         conn.execute("update alerts set resolved_at = now() where location_id = 'P7' and item_id = 'diesel'"
                      " and resolved_at is null")
-    t0 = datetime.now(timezone.utc)
-    amber_qty = sum(daily[:6]) + daily[6] * 0.5  # 6.5 days of supply: inside the Amber band
+        db_t0 = conn.execute("select now()").fetchone()[0]  # alerts are stamped by the DB clock
+    t0 = datetime.now(timezone.utc)  # readings are stamped by this test's clock
+    lead = next(s for s in c.get("/stock").json()["stock"]
+                if (s["location_id"], s["item_id"]) == ("P7", "diesel"))["lead_time_days"]
+    mid = lead + BUFFER_DAYS / 2  # middle of the Amber band
+    amber_qty = sum(daily[:int(mid)]) + daily[int(mid)] * (mid % 1)
     try:
         r = c.post("/readings", json=reading(amber_qty)).json()["results"][0]
         assert r["status"] == "amber", r
@@ -58,7 +65,7 @@ def test_alert_transitions_and_dedup():
         with get_conn() as conn:
             conn.execute("update stock_levels set quantity = %s, updated_at = %s"
                          " where location_id = 'P7' and item_id = 'diesel'", (qty0, ts0))
-            conn.execute("delete from alerts where location_id = 'P7' and item_id = 'diesel' and created_at >= %s", (t0,))
+            conn.execute("delete from alerts where location_id = 'P7' and item_id = 'diesel' and created_at >= %s", (db_t0,))
             conn.execute("delete from stock_readings where location_id = 'P7' and item_id = 'diesel' and ts >= %s", (t0,))
 
 
@@ -73,7 +80,8 @@ def test_readings_validation():
 
 def test_stock_serves_status_and_thresholds():
     body = c.get("/stock").json()
-    assert body["thresholds"]["lead_time_days"] == LEAD_TIME_DAYS
+    assert body["thresholds"]["handling_days"] == HANDLING_DAYS
     p7 = next(s for s in body["stock"] if (s["location_id"], s["item_id"]) == ("P7", "diesel"))
     assert p7["status"] in ("green", "amber", "red") and p7["days_of_supply"] > 0
+    assert p7["lead_time_days"] > HANDLING_DAYS and "resupply takes" in p7["explanation"]
     assert len(body["stock"]) == 78

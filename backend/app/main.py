@@ -2,13 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import forecast, locations, stock
+from app.api import forecast, locations, routes, stock
 from app.db import get_conn
 
 app = FastAPI(title="Forward Logistics API")
 app.include_router(locations.router)
 app.include_router(forecast.router)
 app.include_router(stock.router)
+app.include_router(routes.router)
 
 # ponytail: open CORS for dev; lock to the Vercel domain in Phase 8
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

@@ -58,13 +58,13 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 4 — Weather, routes & GIS (FR-10 … FR-15)
-- [ ] Open-Meteo client (current + 3-day forecast per node), `WEATHER_MODE=sim` fallback generator
-- [ ] Rule engine: snowfall / precipitation / wind / altitude → open / degraded / closed + risk score
-- [ ] Edge weight = distance ÷ effective speed × (1 + risk factor); closed edges removed
-- [ ] NetworkX graph built from `route_edges`; shortest path depot → post with ETA and risk
-- [ ] Lead time for stock status now comes from best-route ETA
-- [ ] `GET /routes` (GeoJSON with status, ETA, risk), `PATCH /routes/{id}`
-- [ ] Test: closing Route A makes the path to Post 7 use Route B
+- [x] Open-Meteo client (current + 3-day forecast per node), `WEATHER_MODE=sim` fallback generator
+- [x] Rule engine: snowfall / precipitation / wind / altitude → open / degraded / closed + risk score
+- [x] Edge weight = distance ÷ effective speed × (1 + risk factor); closed edges removed
+- [x] NetworkX graph built from `route_edges`; shortest path depot → post with ETA and risk
+- [x] Lead time for stock status now comes from best-route ETA
+- [x] `GET /routes` (GeoJSON with status, ETA, risk), `PATCH /routes/{id}`
+- [x] Test: closing Route A makes the path to Post 7 use Route B
 
 **Done when:** `PATCH` Route A to closed → `GET /routes` path for Post 7 switches to Route B with a higher ETA.
 
