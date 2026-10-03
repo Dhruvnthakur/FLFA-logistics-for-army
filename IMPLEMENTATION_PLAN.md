@@ -71,13 +71,13 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 5 — Dispatch recommendation (FR-17 … FR-20)
-- [ ] Compute needs: for each post × item, qty to cover lead time + target days-of-supply − current stock
-- [ ] Sort by item priority, then lowest days-of-supply
-- [ ] Greedy assignment to available vehicles at the nearest depot (by route ETA) respecting capacity (tonnes)
-- [ ] Output: item, qty, vehicle, origin, path, depart-by, ETA, arrives-before-stock-out flag
-- [ ] Persist plan; `GET /dispatch-plan`, `PATCH /dispatch-plan/{id}` (approved/dispatched)
-- [ ] Re-run planner on stock status change, route change, or what-if
-- [ ] Test: ammo/medical scheduled before rations when capacity is short
+- [x] Compute needs: for each post × item, qty to cover lead time + target days-of-supply − current stock
+- [x] Sort by item priority, then lowest days-of-supply
+- [x] Greedy assignment to available vehicles at the nearest depot (by route ETA) respecting capacity (tonnes)
+- [x] Output: item, qty, vehicle, origin, path, depart-by, ETA, arrives-before-stock-out flag
+- [x] Persist plan; `GET /dispatch-plan`, `PATCH /dispatch-plan/{id}` (approved/dispatched)
+- [x] Re-run planner on stock status change, route change, or what-if
+- [x] Test: ammo/medical scheduled before rations when capacity is short
 
 **Done when:** the plan for Post 7 diesel lists a vehicle, route and ETA, and changes when Route A closes.
 

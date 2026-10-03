@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Status:** Phases 0–4 done (schema, synthetic data, `GET /locations`, forecasting + `/forecast`, `POST /readings`, `/stock`, `/alerts`, IoT simulator, weather + `GET/PATCH /routes` with NetworkX paths). Track progress in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+**Status:** Phases 0–4 done (schema, synthetic data, `GET /locations`, forecasting + `/forecast`, `POST /readings`, `/stock`, `/alerts`, IoT simulator, weather + `GET/PATCH /routes` with NetworkX paths) and Phase 5 (greedy dispatch planner, `GET/PATCH /dispatch-plan`). Track progress in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Project
 Student prototype of a **Predictive Logistics & Forward Supply Chain** system for Indian Army forward posts. Pipeline: synthetic data + simulated IoT stock feed + weather → demand forecast → stock-risk alerts → route status/optimisation → dispatch recommendation → map-based command dashboard with a what-if simulator.
@@ -49,6 +49,7 @@ Backend venv lives in `backend/.venv` (Windows: `backend\.venv\Scripts\activate`
 - Train (also run after re-seeding; ~45s; artifacts in `backend/ml/artifacts/` are committed for Render): `python backend/ml/train.py` (repo root)
 - Simulator (API running; stdlib only): `python simulator/publish.py` (`--api URL`, `--interval 5`, `--ticks N`); demo: `--scenario drain-post7-diesel` (P7 diesel Green → Amber → Red in ~6 ticks). It mutates stock — re-seed to reset.
 - Status thresholds (handling days, driving hours/day, buffer) live only in `backend/app/services/stock.py`; `/stock` serves them. Lead time per post = handling days + best-route ETA (`services/routing.py`). Route rules (snow/precip/wind → degraded/closed) live in `routing.py`; effective edge status = worse of manual `PATCH /routes/{id}` and weather. `PATCH` re-syncs all alerts.
+- Dispatch (`services/dispatch.py`): need = daily demand × (lead time + `TARGET_DAYS`=10) − stock − approved/dispatched qty; greedy by item priority then days-of-supply onto trucks at the nearest depot (by ETA), one post per truck. `GET /dispatch-plan` re-plans on every read (proposed rows keep their id while post × item × vehicle is unchanged); approved/dispatched rows are commitments and persist until re-seed (deliveries aren't simulated). Rows the fleet can't cover are listed with `vehicle_id` null.
 - Weather: `WEATHER_MODE=sim` (default, deterministic, never closes a road by itself) or `live` (Open-Meteo, cached 30 min, falls back to sim on error). Tests force sim. Demand forecasts are cached per process — restart the API after re-seed/retrain.
 
 ## Data flow (how the pieces connect)

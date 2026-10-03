@@ -53,28 +53,47 @@ def edges(conn):
     return out
 
 
-def best_paths(conn, es=None):
-    """Lowest-weight path from any depot to every post. weight = hours × (1 + risk/100); closed edges removed.
-    Unreachable posts get reachable=False."""
-    es = es if es is not None else edges(conn)
+def graph(es):
+    """Open/degraded edges only. weight = hours × (1 + risk/100)."""
     g = nx.Graph()
     for e in es:
         if e["status"] != "closed":
             g.add_edge(e["from"], e["to"], weight=e["eta_hours"] * (1 + e["risk"] / 100), edge=e)
+    return g
+
+
+def path(g, nodes):
+    legs = [g.edges[u, v]["edge"] for u, v in zip(nodes, nodes[1:])]
+    return {"post_id": nodes[-1], "reachable": True, "depot": nodes[0], "nodes": nodes,
+            "edges": [e["id"] for e in legs], "edge_names": [e["name"] for e in legs],
+            "eta_hours": round(sum(e["eta_hours"] for e in legs), 2), "risk": max(e["risk"] for e in legs)}
+
+
+def depots_posts(conn, g):
     locs = conn.execute("select id, kind from locations").fetchall()
-    depots = [i for i, k in locs if k != "post" and i in g]
-    dist, paths = nx.multi_source_dijkstra(g, depots) if depots else ({}, {})
+    return [i for i, k in locs if k != "post" and i in g], [i for i, k in locs if k == "post"]
+
+
+def best_paths(conn, es=None):
+    """Lowest-weight path from any depot to every post; closed edges removed.
+    Unreachable posts get reachable=False."""
+    g = graph(es if es is not None else edges(conn))
+    depots, posts = depots_posts(conn, g)
+    _, paths = nx.multi_source_dijkstra(g, depots) if depots else ({}, {})
+    return {pid: path(g, paths[pid]) if pid in paths else
+            {"post_id": pid, "reachable": False, "depot": None, "nodes": [], "edges": [], "edge_names": [],
+             "eta_hours": None, "risk": None}
+            for pid in posts}
+
+
+def depot_paths(conn, es):
+    """(depot, post) → lowest-weight path from that depot, for every depot that can reach the post."""
+    g = graph(es)
+    depots, posts = depots_posts(conn, g)
     out = {}
-    for pid in (i for i, k in locs if k == "post"):
-        if pid not in paths:
-            out[pid] = {"post_id": pid, "reachable": False, "depot": None, "nodes": [], "edges": [],
-                        "eta_hours": None, "risk": None}
-            continue
-        nodes = paths[pid]
-        legs = [g.edges[u, v]["edge"] for u, v in zip(nodes, nodes[1:])]
-        out[pid] = {"post_id": pid, "reachable": True, "depot": nodes[0], "nodes": nodes,
-                    "edges": [e["id"] for e in legs], "eta_hours": round(sum(e["eta_hours"] for e in legs), 2),
-                    "risk": max(e["risk"] for e in legs)}
+    for d in depots:
+        _, paths = nx.single_source_dijkstra(g, d)
+        out.update({(d, pid): path(g, paths[pid]) for pid in posts if pid in paths})
     return out
 
 
