@@ -163,11 +163,13 @@ def forecast(conn, post_id, item_id, days):
         return None
     post_name, item_name, unit, stock = meta
     start, full = demand
+    recent = history(conn, post_id, item_id).tail(14)  # actuals for the chart's left half
     daily = full[:days]  # recursive forecast: the first N days of the 30-day run are the N-day forecast
     dos = days_of_supply(stock, full)
     return {
         "post_id": post_id, "item_id": item_id, "unit": unit, "stock": float(stock),
         "forecast": [{"date": (start + timedelta(days=i)).isoformat(), "qty": round(q, 2)} for i, q in enumerate(daily)],
+        "history": [{"date": d.isoformat(), "qty": round(q, 2)} for d, q in zip(recent["date"], recent["qty"])],
         "days_of_supply": round(dos, 1),
         "explanation": explain(post_name, item_name, dos),
     }

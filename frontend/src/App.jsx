@@ -1,6 +1,7 @@
 import { Children, useCallback, useEffect, useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import Forecast from './components/Forecast'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -74,8 +75,8 @@ function Row({ grid, selected, onSelect, children }) {
 const days = (d) => (d == null ? '—' : `${d.toFixed(1)} d`)
 const etaDays = (iso) => Math.max(0, (new Date(iso) - Date.now()) / 864e5)
 const NEXT = { proposed: ['approved', 'Approve'], approved: ['dispatched', 'Dispatch'] }
-const GRID_STOCK = '4rem 1fr 5.5rem 4.5rem'
-const GRID_PLAN = '4rem 1fr 4.5rem 4rem 5.25rem'
+const GRID_STOCK = '3rem minmax(0, 1fr) 5rem 4rem'
+const GRID_PLAN = '4rem minmax(0, 1fr) 4.5rem 4rem 5.25rem'
 
 function Panel({ title, className = '', role, children }) {
   return (
@@ -110,6 +111,7 @@ export default function App() {
   const [stock, setStock] = useState([])
   const [alerts, setAlerts] = useState([])
   const [plan, setPlan] = useState([])
+  const [metrics, setMetrics] = useState(null)
   const [selection, setSelection] = useState(null) // { postId, itemId }
   const points = useMemo(() => places.map((p) => p.latlng), [places])
   const worst = useMemo(() => worstByPost(stock), [stock])
@@ -122,6 +124,7 @@ export default function App() {
   )
   const dos = useMemo(() => Object.fromEntries(stock.map((r) => [`${r.location_id}/${r.item_id}`, r.days_of_supply])), [stock])
   const selPlan = selection && plan.find((p) => p.destination === selection.postId && p.item_id === selection.itemId)
+  const selRow = selection && stock.find((r) => r.location_id === selection.postId && r.item_id === selection.itemId)
   const selEdges = selPlan?.edges ?? []
   const select = (postId, itemId) => setSelection((cur) => (same(cur, { postId, itemId }) ? null : { postId, itemId }))
 
@@ -156,6 +159,7 @@ export default function App() {
 
   useEffect(() => {
     load()
+    fetch(`${API}/forecast/metrics`).then((r) => r.json()).then(setMetrics).catch(() => {})
     fetch(`${API}/health`)
       .then((r) => r.json())
       .then((d) => setHealth(d.status === 'ok' ? `API ok · PostGIS ${d.postgis}` : `API error: ${d.db}`))
@@ -319,7 +323,15 @@ export default function App() {
         </div>
         <div className="bottom">
           <Panel title="Forecast">
-            <p className="empty">Select an alert to see its forecast.</p>
+            <Forecast
+              selection={selection}
+              row={selRow}
+              convoys={selection ? plan.filter((p) => p.destination === selection.postId) : []}
+              metrics={metrics}
+              Chip={Chip}
+              days={days}
+              etaDays={etaDays}
+            />
           </Panel>
           <Board
             title="Stock risk"
@@ -338,7 +350,6 @@ export default function App() {
                 <span>{r.location_name.replace('Post ', 'P')}</span>
                 <span>
                   {r.item_name}
-                  {same(selection, { postId: r.location_id, itemId: r.item_id }) && <small className="sub">{r.explanation}</small>}
                 </span>
                 <Chip status={r.status} />
                 <span className="time">{days(r.days_of_supply)}</span>

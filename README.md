@@ -22,6 +22,15 @@ Everything runs locally against **your own** database, so your seeding and simul
 
 Full command list (tests, simulator, demo script, conventions) is in [CLAUDE.md](CLAUDE.md).
 
+## Using the dashboard
+
+Open http://localhost:5173 (the frontend finds the API through `VITE_API_URL` in the root `.env`, default `http://localhost:8000`).
+
+- **Select** an alert, stock-risk row or dispatch row: the map highlights its route, the Forecast panel shows the one-sentence explanation, actual vs predicted demand, the MAE/MAPE badge and inbound convoys, and the dispatch row is selected. Click again to deselect.
+- **Try the demo** (fresh seed, `WEATHER_MODE=sim`): `python simulator/publish.py --scenario drain-post7-diesel --ticks 6`, then close Route A with `PATCH /routes/E9 {"status":"closed"}` (e.g. via http://localhost:8000/docs). Post 7 diesel goes Amber, then Red, and the convoy reroutes via Route B.
+- **Reset** after the simulator or route changes: re-run `python data/generator/seed.py`, then restart the API (forecasts are cached per process).
+- **Data is synthetic.** Post names and locations are fictional. The basemap is Esri's light-grey canvas and its borders are not authoritative.
+
 ## Working rules
 
 Collaborators technically have write access, so by agreement: **never push to `main`**. Work on your own branch (`git checkout -b yourname/topic`), push that branch, and open a PR for the owner to review and merge.

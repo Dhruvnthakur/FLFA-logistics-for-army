@@ -120,7 +120,7 @@ Every convoy and alert is a departure: a timed row with a place, a status and a 
 
 It is deliberately not a white-card analytics dashboard: no KPI tiles, no boxes inside boxes. Structure comes from a column-header row on every board and hairline rules, never from nested containers.
 
-**Status of the build.** The shell shipped in Phase 6 item 1 renders the top bar, the pill, the panels, the board header row and empty states only. Board rows, status chips, the time column and the primary button are defined in the stylesheet but are shown only in later items (rows and chips arrive when data is wired). Their tokens below are taken from the CSS, not from rendered output.
+**Forecast panel (post view).** Selecting any alert, stock or dispatch row fills it: title with status chip and a dashed/solid line key (actual solid grey, predicted dashed ink; never colour alone), the one-sentence explanation, a stats `dl` (stock, days left, lead time), an MAE/MAPE badge with the naive baseline, a Recharts line chart with a text alternative, and up to two inbound convoys. Ink-only palette; status colour appears only inside chips.
 
 **Key Characteristics:**
 - Light, flat, hairline-ruled; depth is one faint ambient shadow on panels only.
@@ -170,7 +170,7 @@ A near-monochrome Apple-grey system with a single blue and three status inks tha
 
 ## Layout
 
-A fixed command-room shell: a grid of a slim top bar over a main area, 12px outer padding and 12px gaps, minimum width 1100px, designed for 1280x720. The main area is two columns (1.6fr map and bottom band, a right column of at least 440px) and two rows (1.7fr over 1fr). The map occupies the top left; the right column holds Alerts over Dispatch plan, each scrolling independently; the bottom band holds Forecast beside Stock risk. Spacing steps are 4, 8, 12, 16, 24px. Boards share one column template per board via a `--grid` variable so header and rows align. There is no responsive collapse below the minimum width.
+A fixed command-room shell: a grid of a slim top bar over a main area, 12px outer padding and 12px gaps, minimum width 1100px, designed for 1280x720. The main area is two columns (1.6fr map and bottom band, a right column of at least 440px) and two rows (1.4fr over 1fr). The map occupies the top left; the right column holds Alerts over Dispatch plan, each scrolling independently; the bottom band holds Forecast beside Stock risk (5fr / 4fr). Spacing steps are 4, 8, 12, 16, 24px. Boards share one column template per board via a `--grid` variable so header and rows align. There is no responsive collapse below the minimum width.
 
 ## Elevation & Depth
 
@@ -189,7 +189,7 @@ Soft panels (14px) with pill-shaped controls (999px): buttons, chips and the sta
 A white, 14px-rounded, hairline-bordered, ambient-shadowed container with an h2 title (12px 16px 4px padding) and a scrolling body. Empty states are Ink Tertiary text at 8px 16px 16px.
 
 ### Board header and rows
-Header: Label style, hairline above and below, padding 8px 16px. Row: same grid template, 12px vertical padding, 1.0625rem text, hairline below, press feedback of a 4% black wash. Selected: Selection Blue 8% wash, and every other row in that panel drops to Ink Tertiary while chips stay full strength. Rows and chips are shown only in later items.
+Header: Label style, hairline above and below, padding 8px 16px. Row: same grid template, 12px vertical padding, 1.0625rem text, hairline below, press feedback of a 4% black wash. Selected: Selection Blue 8% wash, and every other row in that panel drops to Ink Tertiary while chips stay full strength. Rows and chips ship in Alerts, Dispatch plan and Stock risk. Board grids use `minmax(0, 1fr)` for the flexible column so long text can't widen a row past its header.
 
 ### Chips
 Pill, 2px 8px, 0.75rem/600, +0.02em, leading 6px dot, colour pair per status (see Colors). Always a text label.
