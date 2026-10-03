@@ -1,0 +1,4 @@
+html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+.app { display: flex; flex-direction: column; height: 100%; }
+.app header { padding: 8px 16px; background: #1f2a1f; color: #fff; display: flex; justify-content: space-between; }
+.map { flex: 1; }
