@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 .pytest_cache/
 dist/
+
+# impeccable scratch
+.impeccable/questions/
+.impeccable/review/
+.impeccable/hook.cache.json

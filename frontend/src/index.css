@@ -1,4 +1,191 @@
-html, body, #root { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
-.app { display: flex; flex-direction: column; height: 100%; }
-.app header { padding: 8px 16px; background: #1f2a1f; color: #fff; display: flex; justify-content: space-between; }
-.map { flex: 1; }
+:root {
+  /* surfaces */
+  --bg: #f5f5f7;
+  --panel: #fff;
+  --panel-solid: #fff;
+  --line: rgb(0 0 0 / 0.08);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 4px 16px rgb(0 0 0 / 0.05);
+
+  /* text */
+  --ink: #1d1d1f;
+  --ink-2: #515154;
+  --ink-3: #6e6e73;
+
+  /* accent: selection + primary actions only */
+  --accent: #0071e3;
+  --accent-ink: #fff;
+
+  /* status: always paired with a text label */
+  --ok: #1a7f3c;
+  --ok-bg: #e6f4ea;
+  --warn: #8a5a00;
+  --warn-bg: #fff3d6;
+  --crit: #c4201a;
+  --crit-bg: #fde8e7;
+
+  /* type: fixed rem scale, ratio ~1.15 */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --t-xs: 0.75rem;
+  --t-sm: 0.8125rem;
+  --t-md: 0.9375rem;
+  --t-lg: 1.0625rem;
+  --t-xl: 1.25rem;
+
+  /* space + shape */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --r: 14px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--t-md) / 1.4 var(--font);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: rgb(0 113 227 / 0.22); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+* { scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.22) transparent; }
+
+/* shell: 1280x720 target */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  min-width: 1100px;
+  padding: var(--s3);
+  gap: var(--s3);
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--s2);
+}
+.topbar h1 { margin: 0; font-size: var(--t-xl); font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s3);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(440px, 1fr);
+  grid-template-rows: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: var(--s3);
+  min-height: 0;
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+.panel > h2 {
+  margin: 0;
+  padding: var(--s3) var(--s4) var(--s1);
+  font-size: var(--t-lg);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.panel-body { flex: 1; min-height: 0; overflow: auto; }
+.empty { margin: 0; padding: var(--s2) var(--s4) var(--s4); color: var(--ink-3); font-size: var(--t-md); }
+
+/* shared control: feedback on press, not release */
+.btn {
+  font: 600 var(--t-sm) / 1 var(--font);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 100ms ease-out, background-color 150ms var(--ease);
+}
+.btn:hover { background: #f0f0f2; }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { background: #0077ed; }
+/* blue means selection: a row's primary action is quiet until its row is selected */
+.row:not(.selected) .btn.primary { background: var(--panel-solid); border-color: var(--line); color: var(--ink); }
+.row:not(.selected) .btn.primary:hover { background: #f0f0f2; }
+.btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+
+/* departures-board grammar: header row, 1px hairline rows, last column right-aligned */
+.board-head,
+.row {
+  display: grid;
+  grid-template-columns: var(--grid);
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
+}
+.board-head {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.num { text-align: right; }
+.row { font-size: var(--t-lg); padding-block: var(--s3); border-bottom: 1px solid var(--line); transition: color 150ms var(--ease), background-color 150ms var(--ease); }
+.row:last-child { border-bottom: 0; }
+.row:active { background: rgb(0 0 0 / 0.04); } /* feedback on press, not release */
+.row.selected { background: rgb(0 113 227 / 0.08); }
+/* pull the selected row's numbers into focus; chips stay full strength so status stays legible */
+.panel:has(.row.selected) .row:not(.selected) { color: var(--ink-3); }
+.time { font-size: var(--t-xl); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* status chip: colour AND label, never colour alone */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ok { color: var(--ok); background: var(--ok-bg); }
+.chip.warn { color: var(--warn); background: var(--warn-bg); }
+.chip.crit { color: var(--crit); background: var(--crit-bg); }
+
+.map-panel { grid-row: 1; grid-column: 1; }
+.map-panel .leaflet-container { flex: 1; border-radius: 0 0 var(--r) var(--r); background: #e8eaed; }
+/* quiet the basemap so status colour is the only saturated ink */
+.map-panel .leaflet-tile-pane { filter: saturate(0.25) contrast(0.92) brightness(1.06); }
+.side { grid-row: 1 / 3; grid-column: 2; display: grid; grid-template-rows: 1fr 1fr; gap: var(--s3); min-height: 0; }
+.bottom { grid-row: 2; grid-column: 1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); min-height: 0; }
+
+@media (prefers-contrast: more) {
+  .panel { background: var(--panel-solid); border-color: var(--ink-3); }
+  :root { --ink-3: #515154; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .row, .btn { transition: none; }
+  .btn:active { transform: none; }
+}
