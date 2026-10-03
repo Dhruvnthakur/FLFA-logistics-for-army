@@ -31,14 +31,14 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 2 — Demand forecasting (FR-1 … FR-5, FR-16)
-- [ ] Feature builder: lags (1, 7, 14), rolling means, day-of-year, troop strength, temperature, activity level
-- [ ] Baseline: 7-day moving average
-- [ ] Train XGBoost (or Random Forest) on all but the last 60 days; evaluate on held-out 60 days
-- [ ] Record MAE + MAPE vs baseline; save model + metrics with joblib/JSON to `backend/ml/artifacts/`
-- [ ] Forecast service: recursive N-day forecast (7–30) per post × item
-- [ ] Days-of-supply + one-line explanation string
-- [ ] Endpoints: `GET /forecast/{post_id}/{item_id}`, `GET /forecast/metrics`
-- [ ] Test: forecast length = N, days-of-supply math on a fixed example
+- [x] Feature builder: lags (1, 7, 14), rolling means, day-of-year, troop strength, temperature, activity level
+- [x] Baseline: 7-day moving average
+- [x] Train XGBoost (or Random Forest) on all but the last 60 days; evaluate on held-out 60 days
+- [x] Record MAE + MAPE vs baseline; save model + metrics with joblib/JSON to `backend/ml/artifacts/`
+- [x] Forecast service: recursive N-day forecast (7–30) per post × item
+- [x] Days-of-supply + one-line explanation string
+- [x] Endpoints: `GET /forecast/{post_id}/{item_id}`, `GET /forecast/metrics`
+- [x] Test: forecast length = N, days-of-supply math on a fixed example
 
 **Done when:** model beats the moving-average baseline on MAPE and the API returns "Post 7 runs out of diesel in X days".
 
