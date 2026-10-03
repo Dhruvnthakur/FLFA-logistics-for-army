@@ -21,3 +21,7 @@ Everything runs locally against **your own** database, so your seeding and simul
 7. **Run:** `uvicorn app.main:app --reload` in `backend/`, then `npm install && npm run dev` in `frontend/`.
 
 Full command list (tests, simulator, demo script, conventions) is in [CLAUDE.md](CLAUDE.md).
+
+## Working rules
+
+Collaborators technically have write access, so by agreement: **never push to `main`**. Work on your own branch (`git checkout -b yourname/topic`), push that branch, and open a PR for the owner to review and merge.
