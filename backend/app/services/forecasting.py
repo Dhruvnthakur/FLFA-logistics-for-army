@@ -133,19 +133,38 @@ def history(conn, post_id, item_id):
     return pd.DataFrame(rows, columns=COLS).astype({c: float for c in COLS[1:]})
 
 
+MAX_DAYS = 30
+_demand = {}  # (post_id, item_id) -> (start_date, 30-day daily forecast); history is static between seeds
+
+
+def daily_demand(conn, post_id, item_id):
+    """Cached 30-day demand forecast, or None if there is no history (e.g. depots).
+    Demand doesn't depend on stock, so readings never invalidate it."""
+    # ponytail: process-lifetime cache (~0.3 s/pair cold); restart the API after re-seed/retrain
+    key = (post_id, item_id)
+    if key not in _demand:
+        hist = history(conn, post_id, item_id)
+        _demand[key] = None if hist.empty else (
+            hist["date"].iloc[-1] + timedelta(days=1),
+            forecast_series(load_models()[item_id], hist, MAX_DAYS, seasonal_temp(hist)))
+    return _demand[key]
+
+
 def forecast(conn, post_id, item_id, days):
     """Full forecast payload for one post × item, or None if unknown / no history."""
-    hist = history(conn, post_id, item_id)
     meta = conn.execute(
         "select l.name, i.name, i.unit, s.quantity from locations l, items i"
         " left join stock_levels s on s.item_id = i.id and s.location_id = %s"
         " where l.id = %s and i.id = %s", (post_id, post_id, item_id)).fetchone()
-    if hist.empty or meta is None or meta[3] is None:
+    if meta is None or meta[3] is None:
+        return None
+    demand = daily_demand(conn, post_id, item_id)
+    if demand is None:
         return None
     post_name, item_name, unit, stock = meta
-    daily = forecast_series(load_models()[item_id], hist, days, seasonal_temp(hist))
-    dos = days_of_supply(stock, daily)
-    start = hist["date"].iloc[-1] + timedelta(days=1)
+    start, full = demand
+    daily = full[:days]  # recursive forecast: the first N days of the 30-day run are the N-day forecast
+    dos = days_of_supply(stock, full)
     return {
         "post_id": post_id, "item_id": item_id, "unit": unit, "stock": float(stock),
         "forecast": [{"date": (start + timedelta(days=i)).isoformat(), "qty": round(q, 2)} for i, q in enumerate(daily)],

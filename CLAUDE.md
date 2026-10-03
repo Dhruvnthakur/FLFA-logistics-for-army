@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Status:** Phases 0–2 done (schema, synthetic data, `GET /locations`, forecasting model + `/forecast` endpoints). Track progress in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+**Status:** Phases 0–3 done (schema, synthetic data, `GET /locations`, forecasting + `/forecast`, `POST /readings`, `/stock`, `/alerts`, IoT simulator). Track progress in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Project
 Student prototype of a **Predictive Logistics & Forward Supply Chain** system for Indian Army forward posts. Pipeline: synthetic data + simulated IoT stock feed + weather → demand forecast → stock-risk alerts → route status/optimisation → dispatch recommendation → map-based command dashboard with a what-if simulator.
@@ -47,7 +47,8 @@ Backend venv lives in `backend/.venv` (Windows: `backend\.venv\Scripts\activate`
 - Generator self-check (no DB): `python data/generator/generate.py`
 - Tests: `python -m pytest` (in `backend/`; needs a live `DATABASE_URL`); single test: `python -m pytest tests/test_health.py::test_health_reports_db_and_postgis`
 - Train (also run after re-seeding; ~45s; artifacts in `backend/ml/artifacts/` are committed for Render): `python backend/ml/train.py` (repo root)
-- Planned: simulator `python simulator/publish.py --api $API_URL`
+- Simulator (API running; stdlib only): `python simulator/publish.py` (`--api URL`, `--interval 5`, `--ticks N`); demo: `--scenario drain-post7-diesel` (P7 diesel Green → Amber → Red in ~6 ticks). It mutates stock — re-seed to reset.
+- Status thresholds (lead time, buffer) live only in `backend/app/services/stock.py`; `/stock` serves them. Demand forecasts are cached per process — restart the API after re-seed/retrain.
 
 ## Data flow (how the pieces connect)
 `POST /readings` updates stock → days-of-supply recomputed from the forecast → Green/Amber/Red status → alert raised → dispatch plan regenerated. `PATCH /routes/{id}` or `POST /whatif` changes edge status/weather → NetworkX re-pathfinds → dispatch plan regenerated. The dashboard only reads (`/stock`, `/alerts`, `/routes`, `/dispatch-plan`) and polls every ≤5s. Full endpoint list: PRD §7; tables: PRD §6.

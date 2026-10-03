@@ -45,13 +45,13 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 3 — IoT inventory & alerts (FR-6 … FR-9)
-- [ ] `POST /readings` with validation (known location/item, quantity ≥ 0, sane timestamp)
-- [ ] Update `stock_levels` on each reading
-- [ ] Status function (Green/Amber/Red) — single source of truth, uses days-of-supply, safety stock and lead time
-- [ ] Alert creation on transitions; de-duplicate open alerts; resolve on recovery
-- [ ] `GET /stock`, `GET /alerts`
-- [ ] Simulator script: loops over locations, applies consumption + noise, POSTs readings every N seconds; `--scenario drain-post7-diesel` flag for the demo
-- [ ] Test: status thresholds and alert de-duplication
+- [x] `POST /readings` with validation (known location/item, quantity ≥ 0, sane timestamp)
+- [x] Update `stock_levels` on each reading
+- [x] Status function (Green/Amber/Red) — single source of truth, uses days-of-supply, safety stock and lead time
+- [x] Alert creation on transitions; de-duplicate open alerts; resolve on recovery
+- [x] `GET /stock`, `GET /alerts`
+- [x] Simulator script: loops over locations, applies consumption + noise, POSTs readings every N seconds; `--scenario drain-post7-diesel` flag for the demo
+- [x] Test: status thresholds and alert de-duplication
 
 **Done when:** running the simulator makes Post 7 diesel go Amber → Red and an alert appears in `GET /alerts` without manual steps.
 
