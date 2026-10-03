@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Status:** Phase 0 scaffolded (FastAPI `/health`, Vite + Leaflet map). Track progress in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+**Status:** Phase 1 done (schema, synthetic data, `seed.py`, `GET /locations`). Track progress in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Project
 Student prototype of a **Predictive Logistics & Forward Supply Chain** system for Indian Army forward posts. Pipeline: synthetic data + simulated IoT stock feed + weather → demand forecast → stock-risk alerts → route status/optimisation → dispatch recommendation → map-based command dashboard with a what-if simulator.
@@ -43,9 +43,10 @@ Backend venv lives in `backend/.venv` (Windows: `backend\.venv\Scripts\activate`
 - Backend dev: `uvicorn app.main:app --reload` (in `backend/`) → http://localhost:8000/health
 - Frontend dev: `npm run dev` (in `frontend/`) → http://localhost:5173
 - Frontend build: `npm run build` (in `frontend/`)
-- DB migrations: run `db/migrations/*.sql` in order in the Supabase SQL editor
+- Seed (also applies `db/migrations/*.sql`, which are idempotent): `python data/generator/seed.py` (from repo root, backend venv active)
+- Generator self-check (no DB): `python data/generator/generate.py`
 - Tests: `python -m pytest` (in `backend/`; needs a live `DATABASE_URL`); single test: `python -m pytest tests/test_health.py::test_health_reports_db_and_postgis`
-- Planned: seed `python data/generator/seed.py`, train `python backend/ml/train.py`, simulator `python simulator/publish.py --api $API_URL`
+- Planned: train `python backend/ml/train.py`, simulator `python simulator/publish.py --api $API_URL`
 
 ## Data flow (how the pieces connect)
 `POST /readings` updates stock → days-of-supply recomputed from the forecast → Green/Amber/Red status → alert raised → dispatch plan regenerated. `PATCH /routes/{id}` or `POST /whatif` changes edge status/weather → NetworkX re-pathfinds → dispatch plan regenerated. The dashboard only reads (`/stock`, `/alerts`, `/routes`, `/dispatch-plan`) and polls every ≤5s. Full endpoint list: PRD §7; tables: PRD §6.

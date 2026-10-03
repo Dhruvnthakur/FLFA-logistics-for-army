@@ -71,8 +71,7 @@ Forward posts (Ladakh, Siachen, Arunachal, North-East, Rajasthan) are supplied t
 ## 6. Data Model (summary)
 | Table | Key fields |
 |---|---|
-| `depots` | id, name, tier (base/field), geom Point |
-| `posts` | id, name, region, altitude_m, troop_strength, activity_level, geom Point |
+| `locations` | id, name, kind (base_depot/field_depot/post), region, altitude_m, troop_strength, activity_level (posts only), geom Point — depots and posts share one table so every `location_id` has a single FK |
 | `items` | id, name, class, unit, weight_kg_per_unit, priority |
 | `stock_levels` | location_id, item_id, quantity, safety_stock, updated_at |
 | `stock_readings` | id, location_id, item_id, quantity, ts |

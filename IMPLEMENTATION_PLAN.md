@@ -17,14 +17,14 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 1 — Data model & synthetic data
-- [ ] SQL migration for all tables in PRD §6 (PostGIS geography columns)
-- [ ] Generator: ~3 depots (1 base, 2 field), ~10 posts across 2 regions with realistic lat/lon & altitude
-- [ ] Items: rations, fuel/POL, ammo, medical, spares, winter clothing (with priority + weight)
-- [ ] 2 years of daily consumption per post × item driven by troop strength, season, temperature, activity level, plus noise and surge events
-- [ ] Road graph: depot → field depot → post edges with distance, terrain difficulty, base speed, LineString geometry; include at least one alternate path (Route A / Route B to Post 7)
-- [ ] Vehicle fleet with capacities and home depots
-- [ ] Initial stock levels + safety stock
-- [ ] `seed.py` that wipes and reloads everything idempotently
+- [x] SQL migration for all tables in PRD §6 (PostGIS geography columns)
+- [x] Generator: ~3 depots (1 base, 2 field), ~10 posts across 2 regions with realistic lat/lon & altitude
+- [x] Items: rations, fuel/POL, ammo, medical, spares, winter clothing (with priority + weight)
+- [x] 2 years of daily consumption per post × item driven by troop strength, season, temperature, activity level, plus noise and surge events
+- [x] Road graph: depot → field depot → post edges with distance, terrain difficulty, base speed, LineString geometry; include at least one alternate path (Route A / Route B to Post 7)
+- [x] Vehicle fleet with capacities and home depots
+- [x] Initial stock levels + safety stock
+- [x] `seed.py` that wipes and reloads everything idempotently
 
 **Done when:** one command seeds the DB and `GET /locations` returns GeoJSON with all depots and posts.
 
