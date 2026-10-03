@@ -1,8 +1,25 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer } from 'react-leaflet'
+import { useEffect, useMemo, useState } from 'react'
+import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
 const API = import.meta.env.VITE_API_URL
+
+// Frames the map on the posts/depots so the network, not the surrounding country, fills the view.
+function FitBounds({ points }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!points.length) return
+    const fit = () => {
+      map.invalidateSize()
+      map.fitBounds(points, { padding: [32, 32], maxZoom: 8, animate: false })
+    }
+    // the flex panel settles after the map mounts, so refit whenever its container resizes
+    const ro = new ResizeObserver(fit)
+    ro.observe(map.getContainer())
+    return () => ro.disconnect()
+  }, [map, points])
+  return null
+}
 
 function Panel({ title, className = '', children }) {
   return (
@@ -32,12 +49,26 @@ function Board({ title, cols, grid, num, empty }) {
 
 export default function App() {
   const [health, setHealth] = useState('Checking API…')
+  const [places, setPlaces] = useState([])
+  const points = useMemo(() => places.map((p) => p.latlng), [places])
 
   useEffect(() => {
     fetch(`${API}/health`)
       .then((r) => r.json())
       .then((d) => setHealth(d.status === 'ok' ? `API ok · PostGIS ${d.postgis}` : `API error: ${d.db}`))
       .catch(() => setHealth('API unreachable'))
+    fetch(`${API}/locations`)
+      .then((r) => r.json())
+      .then((d) =>
+        setPlaces(
+          d.features.map((f) => ({
+            id: f.properties.id,
+            name: f.properties.name,
+            latlng: [f.geometry.coordinates[1], f.geometry.coordinates[0]],
+          })),
+        ),
+      )
+      .catch(() => {})
   }, [])
 
   return (
@@ -51,12 +82,18 @@ export default function App() {
       <main className="board">
         <section className="panel map-panel">
           <h2>Network map</h2>
-          {/* centred on northern India (Ladakh / Arunachal span) */}
-          <MapContainer center={[31, 85]} zoom={5} zoomControl={false}>
+          {/* fallback view until /locations arrives: northern India (Ladakh / Arunachal span) */}
+          <MapContainer center={[31, 85]} zoom={5} zoomSnap={0.25} zoomControl={false}>
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="Tiles &copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
             />
+            <FitBounds points={points} />
+            {places.map((p) => (
+              <CircleMarker key={p.id} center={p.latlng} radius={6} pathOptions={{ color: '#1d1d1f', weight: 2, fillColor: '#fff', fillOpacity: 1 }}>
+                <Tooltip>{p.name}</Tooltip>
+              </CircleMarker>
+            ))}
           </MapContainer>
         </section>
         <div className="side">
