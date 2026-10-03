@@ -86,10 +86,10 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ## Phase 6 — Command dashboard (FR-21, FR-22, FR-25)
 - [x] Layout: map (left/centre), alerts + dispatch tables (right), forecast chart (bottom)
 - [x] Map: depot/post markers coloured by worst status; route polylines coloured by status; popup with ETA/risk
-- [ ] Stock-risk table with Green/Amber/Red badges, sortable by days-of-supply
+- [x] Stock-risk table with Green/Amber/Red badges, sortable by days-of-supply
 - [ ] Forecast chart: actual vs predicted + holdout MAE/MAPE badge
-- [ ] Alerts panel → click selects post/item and highlights route and dispatch row
-- [ ] Dispatch table with Approve / Dispatched buttons
+- [x] Alerts panel → click selects post/item and highlights route and dispatch row
+- [x] Dispatch table with Approve / Dispatched buttons
 - [ ] Post view (single post: stock, days-of-supply, inbound convoys)
 - [ ] Live refresh: Supabase realtime on `stock_levels`/`alerts`, or 3 s polling
 - [ ] Projector check: readable at 1280px, colour + label (not colour alone) for status

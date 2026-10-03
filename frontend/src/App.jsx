@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Children, useCallback, useEffect, useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -43,28 +43,62 @@ function FitBounds({ points }) {
   return null
 }
 
-function Panel({ title, className = '', children }) {
+const same = (a, b) => a && b && a.postId === b.postId && a.itemId === b.itemId
+
+// Selectable board row: click or Enter/Space; inner buttons stop propagation themselves.
+function Row({ grid, selected, onSelect, children }) {
+  return (
+    <div
+      className={`row${selected ? ' selected' : ''}`}
+      style={{ '--grid': grid }}
+      tabIndex={0}
+      role="row"
+      aria-selected={selected}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+    >
+      {Children.toArray(children).map((c, i) => (
+        <span key={i} role="gridcell" className="cell">
+          {c}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const days = (d) => (d == null ? '—' : `${d.toFixed(1)} d`)
+const etaDays = (iso) => Math.max(0, (new Date(iso) - Date.now()) / 864e5)
+const NEXT = { proposed: ['approved', 'Approve'], approved: ['dispatched', 'Dispatch'] }
+const GRID_STOCK = '4rem 1fr 5.5rem 4.5rem'
+const GRID_PLAN = '4rem 1fr 4.5rem 4rem 5.25rem'
+
+function Panel({ title, className = '', role, children }) {
   return (
     <section className={`panel ${className}`}>
       <h2>{title}</h2>
-      <div className="panel-body">{children}</div>
+      <div className="panel-body" role={role} aria-label={role ? title : undefined}>{children}</div>
     </section>
   )
 }
 
 // Departures-board grammar shared by Alerts, Dispatch and Stock risk: header row + hairline rows.
 // `grid` is the column template shared by header and rows; column `num` is the right-aligned time column.
-function Board({ title, cols, grid, num, empty }) {
+function Board({ title, cols, grid, num, empty, children }) {
   return (
-    <Panel title={title}>
-      <div className="board-head" style={{ '--grid': grid }} role="presentation">
+    <Panel title={title} role="grid">
+      <div className="board-head" style={{ '--grid': grid }} role="row">
         {cols.map((c, i) => (
-          <span key={c || i} className={i === num ? 'num' : undefined}>
+          <span key={c || i} role="columnheader" className={i === num ? 'num' : undefined}>
             {c}
           </span>
         ))}
       </div>
-      <p className="empty">{empty}</p>
+      {children?.length ? children : <p className="empty">{empty}</p>}
     </Panel>
   )
 }
@@ -74,10 +108,54 @@ export default function App() {
   const [places, setPlaces] = useState([])
   const [routes, setRoutes] = useState([])
   const [stock, setStock] = useState([])
+  const [alerts, setAlerts] = useState([])
+  const [plan, setPlan] = useState([])
+  const [selection, setSelection] = useState(null) // { postId, itemId }
   const points = useMemo(() => places.map((p) => p.latlng), [places])
   const worst = useMemo(() => worstByPost(stock), [stock])
+  const stockRows = useMemo(
+    () =>
+      stock
+        .filter((r) => r.kind === 'post')
+        .sort((a, b) => RANK[b.status] - RANK[a.status] || a.days_of_supply - b.days_of_supply),
+    [stock],
+  )
+  const dos = useMemo(() => Object.fromEntries(stock.map((r) => [`${r.location_id}/${r.item_id}`, r.days_of_supply])), [stock])
+  const selPlan = selection && plan.find((p) => p.destination === selection.postId && p.item_id === selection.itemId)
+  const selEdges = selPlan?.edges ?? []
+  const select = (postId, itemId) => setSelection((cur) => (same(cur, { postId, itemId }) ? null : { postId, itemId }))
+
+  // the four live feeds; polling (item 8) will call this on a timer
+  const load = useCallback(() => {
+    const get = (path, then) =>
+      fetch(`${API}${path}`)
+        .then((r) => r.json())
+        .then(then)
+        .catch(() => {})
+    get('/routes', (d) =>
+      setRoutes(d.features.map((f) => ({ ...f.properties, line: f.geometry.coordinates.map(([lng, lat]) => [lat, lng]) }))),
+    )
+    get('/stock', (d) => setStock(d.stock))
+    get('/alerts', (d) => setAlerts(d.alerts))
+    get('/dispatch-plan', (d) => setPlan(d.plan))
+  }, [])
+
+  const advance = (row) => {
+    fetch(`${API}/dispatch-plan/${row.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: NEXT[row.status][0] }),
+    })
+      .then(load)
+      .catch(() => {})
+  }
 
   useEffect(() => {
+    document.querySelectorAll('.row.selected').forEach((el) => el.scrollIntoView({ block: 'nearest' }))
+  }, [selection])
+
+  useEffect(() => {
+    load()
     fetch(`${API}/health`)
       .then((r) => r.json())
       .then((d) => setHealth(d.status === 'ok' ? `API ok · PostGIS ${d.postgis}` : `API error: ${d.db}`))
@@ -96,17 +174,7 @@ export default function App() {
         ),
       )
       .catch(() => {})
-    fetch(`${API}/routes`)
-      .then((r) => r.json())
-      .then((d) =>
-        setRoutes(d.features.map((f) => ({ ...f.properties, line: f.geometry.coordinates.map(([lng, lat]) => [lat, lng]) }))),
-      )
-      .catch(() => {})
-    fetch(`${API}/stock`)
-      .then((r) => r.json())
-      .then((d) => setStock(d.stock))
-      .catch(() => {})
-  }, [])
+  }, [load])
 
   return (
     <div className="app">
@@ -127,6 +195,12 @@ export default function App() {
             />
             <FitBounds points={points} />
             {/* status lives in the class (colour + dash in index.css); keyed on status because Leaflet sets className only once */}
+            {/* selection halo under the chosen alert's route; blue = selection */}
+            {routes
+              .filter((r) => selEdges.includes(r.id))
+              .map((r) => (
+                <Polyline key={`sel-${r.id}`} positions={r.line} interactive={false} pathOptions={{ className: 'route-sel' }} />
+              ))}
             {routes.map((r) => (
               <Polyline key={`${r.id}-${r.status}`} positions={r.line} pathOptions={{ className: `route ${r.status}` }}>
                 <Popup maxWidth={280} autoPanPadding={[24, 24]}>
@@ -181,17 +255,67 @@ export default function App() {
           <Board
             title="Alerts"
             cols={['Post', 'Item', 'Status', 'Days left']}
-            grid="4rem 1fr 5.5rem 4.5rem"
+            grid={GRID_STOCK}
             num={3}
             empty="No stock-risk alerts. Posts with low supply appear here."
-          />
+          >
+            {alerts.map((a) => (
+              <Row
+                key={a.id}
+                grid={GRID_STOCK}
+                selected={same(selection, { postId: a.location_id, itemId: a.item_id })}
+                onSelect={() => select(a.location_id, a.item_id)}
+              >
+                <span>{a.location_name.replace('Post ', 'P')}</span>
+                <span>
+                  {a.item_name}
+                  {same(selection, { postId: a.location_id, itemId: a.item_id }) && <small className="sub">{a.message}</small>}
+                </span>
+                <Chip status={a.level} />
+                <span className="time">{days(dos[`${a.location_id}/${a.item_id}`])}</span>
+              </Row>
+            ))}
+          </Board>
           <Board
             title="Dispatch plan"
             cols={['Post', 'Item', 'Vehicle', 'ETA', '']}
-            grid="4rem 1fr 4.5rem 4rem 5.25rem"
+            grid={GRID_PLAN}
             num={3}
             empty="No convoys recommended. Approved departures appear here."
-          />
+          >
+            {plan.map((p) => (
+              <Row
+                key={p.id}
+                grid={GRID_PLAN}
+                selected={same(selection, { postId: p.destination, itemId: p.item_id })}
+                onSelect={() => select(p.destination, p.item_id)}
+              >
+                <span>{p.destination_name.replace('Post ', 'P')}</span>
+                <span>
+                  {p.item_name}
+                  <small className="sub">
+                    {p.qty} {p.unit} · {p.vehicle_id ? label(p.status) : 'Unassigned'}
+                  </small>
+                  {same(selection, { postId: p.destination, itemId: p.item_id }) && <small className="sub">{p.explanation}</small>}
+                </span>
+                <span>{p.vehicle_id ?? 'No truck'}</span>
+                <span className="time">{p.eta ? days(etaDays(p.eta)) : '—'}</span>
+                {NEXT[p.status] && p.vehicle_id ? (
+                  <button
+                    className="btn primary"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      advance(p)
+                    }}
+                  >
+                    {NEXT[p.status][1]}
+                  </button>
+                ) : (
+                  <span className="num">{p.status === 'dispatched' ? 'Dispatched' : ''}</span>
+                )}
+              </Row>
+            ))}
+          </Board>
         </div>
         <div className="bottom">
           <Panel title="Forecast">
@@ -200,10 +324,27 @@ export default function App() {
           <Board
             title="Stock risk"
             cols={['Post', 'Item', 'Status', 'Days left']}
-            grid="4rem 1fr 5.5rem 4.5rem"
+            grid={GRID_STOCK}
             num={3}
             empty="Days of supply per post and item appear here."
-          />
+          >
+            {stockRows.map((r) => (
+              <Row
+                key={`${r.location_id}/${r.item_id}`}
+                grid={GRID_STOCK}
+                selected={same(selection, { postId: r.location_id, itemId: r.item_id })}
+                onSelect={() => select(r.location_id, r.item_id)}
+              >
+                <span>{r.location_name.replace('Post ', 'P')}</span>
+                <span>
+                  {r.item_name}
+                  {same(selection, { postId: r.location_id, itemId: r.item_id }) && <small className="sub">{r.explanation}</small>}
+                </span>
+                <Chip status={r.status} />
+                <span className="time">{days(r.days_of_supply)}</span>
+              </Row>
+            ))}
+          </Board>
         </div>
       </main>
     </div>

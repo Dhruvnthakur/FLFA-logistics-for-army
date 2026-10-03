@@ -152,6 +152,10 @@ body {
 .num { text-align: right; }
 .row { font-size: var(--t-lg); padding-block: var(--s3); border-bottom: 1px solid var(--line); transition: color 150ms var(--ease), background-color 150ms var(--ease); }
 .row:last-child { border-bottom: 0; }
+.row { cursor: pointer; }
+.cell { display: contents; }
+.row:focus-visible { outline-offset: -2px; border-radius: 0; }
+.sub { display: block; font-size: var(--t-xs); color: var(--ink-3); }
 .row:active { background: rgb(0 0 0 / 0.04); } /* feedback on press, not release */
 .row.selected { background: rgb(0 113 227 / 0.08); }
 /* pull the selected row's numbers into focus; chips stay full strength so status stays legible */
@@ -181,6 +185,7 @@ body {
 .route.open { stroke: var(--ink-3); stroke-opacity: 0.8; } /* open is the quiet default; colour only marks trouble */
 .route.degraded { stroke: var(--warn); stroke-dasharray: 10 7; }
 .route.closed { stroke: var(--crit); stroke-dasharray: 2 8; }
+.route-sel { fill: none; stroke: var(--accent); stroke-width: 12; stroke-opacity: 0.3; stroke-linecap: round; }
 .leaflet-interactive.marker { stroke: #fff; stroke-width: 1.5; fill-opacity: 1; }
 .marker.green { fill: var(--ok); }
 .marker.amber { fill: var(--warn); }
