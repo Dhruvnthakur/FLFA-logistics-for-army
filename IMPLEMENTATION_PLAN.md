@@ -84,8 +84,8 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 6 — Command dashboard (FR-21, FR-22, FR-25)
-- [ ] Layout: map (left/centre), alerts + dispatch tables (right), forecast chart (bottom)
-- [ ] Map: depot/post markers coloured by worst status; route polylines coloured by status; popup with ETA/risk
+- [x] Layout: map (left/centre), alerts + dispatch tables (right), forecast chart (bottom)
+- [x] Map: depot/post markers coloured by worst status; route polylines coloured by status; popup with ETA/risk
 - [ ] Stock-risk table with Green/Amber/Red badges, sortable by days-of-supply
 - [ ] Forecast chart: actual vs predicted + holdout MAE/MAPE badge
 - [ ] Alerts panel → click selects post/item and highlights route and dispatch row

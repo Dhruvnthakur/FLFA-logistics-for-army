@@ -150,7 +150,7 @@ A near-monochrome Apple-grey system with a single blue and three status inks tha
 ### Named Rules
 **The Blue Is Selection Rule.** Blue marks the selected row, focus, and the one primary action of the selected row. It is never decoration, never a status.
 
-**The Labelled Status Rule.** Green, amber and red appear only inside a chip that carries a text label (Green/Amber/Red or equivalent). Never colour alone, never as a row fill, border or text colour elsewhere.
+**The Labelled Status Rule.** Green, amber and red appear only inside a chip that carries a text label (Green/Amber/Red or equivalent). Never colour alone, never as a row fill, border or text colour elsewhere. The one exception is the map: post markers fill with their worst item's status (Red also draws larger and carries a standing name label), degraded/closed routes draw amber dashed / red dotted while open routes stay neutral grey, and an always-visible legend labels every colour and dash.
 
 ## Typography
 

@@ -174,7 +174,58 @@ body {
 .chip.warn { color: var(--warn); background: var(--warn-bg); }
 .chip.crit { color: var(--crit); background: var(--crit-bg); }
 
-.map-panel { grid-row: 1; grid-column: 1; }
+.map-panel { grid-row: 1; grid-column: 1; position: relative; }
+
+/* map: the one place status colour leaves a chip, so every colour is also a shape or dash and the legend labels it */
+.leaflet-interactive.route { fill: none; stroke-width: 5; stroke-linecap: round; stroke-opacity: 0.9; }
+.route.open { stroke: var(--ink-3); stroke-opacity: 0.8; } /* open is the quiet default; colour only marks trouble */
+.route.degraded { stroke: var(--warn); stroke-dasharray: 10 7; }
+.route.closed { stroke: var(--crit); stroke-dasharray: 2 8; }
+.leaflet-interactive.marker { stroke: #fff; stroke-width: 1.5; fill-opacity: 1; }
+.marker.green { fill: var(--ok); }
+.marker.amber { fill: var(--warn); }
+.marker.red { fill: var(--crit); }
+.marker.depot { stroke: var(--ink); fill: #fff; }
+.leaflet-tooltip.map-label {
+  padding: 0 var(--s1);
+  background: rgb(255 255 255 / 0.85);
+  border: 0;
+  box-shadow: none;
+  font: 600 var(--t-xs) / 1.4 var(--font);
+  color: var(--ink);
+}
+.leaflet-tooltip.map-label::before { display: none; }
+.leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: var(--shadow); }
+.leaflet-popup-content { margin: var(--s3) var(--s4); font: var(--t-md) / 1.4 var(--font); color: var(--ink); }
+.leaflet-popup-content strong { font-weight: 650; margin-right: var(--s1); }
+.leaflet-popup-content p { margin: var(--s1) 0 0; color: var(--ink-2); }
+.legend {
+  position: absolute;
+  left: var(--s3);
+  bottom: var(--s3);
+  z-index: 500;
+  display: flex;
+  gap: var(--s3);
+  margin: 0;
+  padding: var(--s1) var(--s3);
+  list-style: none;
+  background: rgb(255 255 255 / 0.92);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.legend li { display: flex; align-items: center; gap: 6px; }
+.key { width: 10px; height: 10px; flex: none; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.key.green { background: var(--ok); }
+.key.amber { background: var(--warn); width: 14px; height: 14px; }
+.key.red { background: var(--crit); width: 18px; height: 18px; }
+.key.depot { background: #fff; border-color: var(--ink); box-shadow: none; }
+.key.line { width: 22px; height: 3px; border: 0; border-radius: 0; box-shadow: none; }
+.key.line.open { background: rgb(110 110 115 / 0.55); }
+.key.line.degraded { background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 10px); }
+.key.line.closed { background: repeating-linear-gradient(90deg, var(--crit) 0 2px, transparent 2px 5px); }
 .map-panel .leaflet-container { flex: 1; border-radius: 0 0 var(--r) var(--r); background: #e8eaed; }
 .side { grid-row: 1 / 3; grid-column: 2; display: grid; grid-template-rows: 1fr 1fr; gap: var(--s3); min-height: 0; }
 .bottom { grid-row: 2; grid-column: 1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); min-height: 0; }
