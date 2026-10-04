@@ -52,6 +52,12 @@ origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip().rstrip("/") for o in origins if o.strip()], allow_methods=["*"], allow_headers=["*"])
 
 
+@app.get("/healthz")
+async def healthz():
+    # Render's liveness probe: no DB, no threadpool, so a CPU-starved boot or heavy forecast can't fail it (5 s limit)
+    return {"status": "ok"}
+
+
 @app.get("/health")
 def health():
     try:
