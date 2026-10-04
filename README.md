@@ -33,6 +33,46 @@ Open http://localhost:5173 (the frontend finds the API through `VITE_API_URL` in
 - **Reset** after the simulator or route changes: re-run `python data/generator/seed.py`, then restart the API (forecasts are cached per process). The open dashboard picks up the reset within a few seconds.
 - **Data is synthetic.** Post names and locations are fictional. The basemap is Esri's light-grey canvas with its reference (place names) overlay; national lines (India's coast and land borders with its direct neighbours only, following India's official map) and state lines come from Natural Earth (`frontend/public/boundaries.geojson`). Neither is authoritative for disputed or administrative boundaries.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  SIM[IoT simulator<br/>simulator/publish.py] -->|POST /readings| API
+  WX[Open-Meteo or sim weather] --> API
+  subgraph API[FastAPI on Render]
+    FC[Forecast<br/>gradient-boosted model (scikit-learn) + joblib] --> ST[Stock status<br/>Green / Amber / Red + alerts]
+    RT[Routing<br/>NetworkX, weather rules] --> ST
+    ST --> DP[Dispatch planner<br/>greedy by item priority]
+    RT --> DP
+    WI[What-if<br/>close route / storm / troops] --> RT
+    WI --> FC
+  end
+  API <--> DB[(Postgres + PostGIS<br/>Supabase)]
+  UI[React dashboard on Vercel<br/>polls every 3 s] -->|GET /stock /alerts /routes /dispatch-plan| API
+  UI -->|PATCH /routes, POST /whatif| API
+```
+
+Data flow: a reading updates stock, days of supply is recomputed from the forecast, the status and alert change, and the dispatch plan is regenerated. Closing a route, or a what-if, re-runs the path search and the plan. The dashboard only reads and polls.
+
+## Deploying
+
+1. **Database:** a Supabase project with PostGIS (the migrations create the extension). Seed it once: `python data/generator/seed.py` (wipes and reloads).
+2. **Backend (Render):** create a Blueprint from this repo; `render.yaml` sets the build, start command (`--port $PORT`), health check `/healthz` and Python version. Set `DATABASE_URL` (Supabase session pooler) and `CORS_ORIGINS` (the Vercel URL, no trailing slash; add `http://localhost:5173` for local dev). Migrations run at startup and a background thread warms the demand cache.
+3. **Frontend (Vercel):** import the repo with root directory `frontend` and set `VITE_API_URL` to the Render URL.
+4. **Before a demo:** the free tier sleeps and the first `/stock` is slow while forecasts warm. Run `python simulator/warmup.py --api https://<your-api>.onrender.com` a few minutes ahead.
+5. **Drive it against the hosted API:** `python simulator/publish.py --api https://<your-api>.onrender.com --scenario drain-post7-diesel --ticks 6`, then close Route A (`PATCH /routes/E9`). Re-seed afterwards to reset.
+
+| Variable | Where | Meaning |
+|---|---|---|
+| `DATABASE_URL` | backend, seed | Postgres connection string |
+| `CORS_ORIGINS` | backend | comma-separated browser origins allowed to call the API |
+| `WEATHER_MODE` | backend | `sim` (default, deterministic) or `live` (Open-Meteo) |
+| `VITE_API_URL` | frontend build | base URL of the API |
+
+Note: local `pytest` runs against whatever `DATABASE_URL` points at and changes route and dispatch state, so use a separate database for tests, or re-seed afterwards.
+
+**If hosting fails (local fallback):** follow *Getting started* above with a local `.env`, run the API (`uvicorn app.main:app` in `backend/`) and `npm run dev` in `frontend/`, then run the demo script from *Using the dashboard*.
+
 ## Working rules
 
 Collaborators technically have write access, so by agreement: **never push to `main`**. Work on your own branch (`git checkout -b yourname/topic`), push that branch, and open a PR for the owner to review and merge.
