@@ -84,4 +84,4 @@ def test_stock_serves_status_and_thresholds():
     p7 = next(s for s in body["stock"] if (s["location_id"], s["item_id"]) == ("P7", "diesel"))
     assert p7["status"] in ("green", "amber", "red") and p7["days_of_supply"] > 0
     assert p7["lead_time_days"] > HANDLING_DAYS and "resupply takes" in p7["explanation"]
-    assert len(body["stock"]) == 78
+    assert len(body["stock"]) == 17 * 6  # locations × items

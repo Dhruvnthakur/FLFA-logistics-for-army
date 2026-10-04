@@ -18,7 +18,7 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 
 ## Phase 1 — Data model & synthetic data
 - [x] SQL migration for all tables in PRD §6 (PostGIS geography columns)
-- [x] Generator: ~3 depots (1 base, 2 field), ~10 posts across 2 regions with realistic lat/lon & altitude
+- [x] Generator: 5 depots (2 base, 3 field), 12 posts across Ladakh / Arunachal / Punjab; coordinates snapped to real roads and inside India's border; edge distance + geometry from real roads (`data/generator/roads.json`, fetched once from OSRM by `fetch_roads.py`)
 - [x] Items: rations, fuel/POL, ammo, medical, spares, winter clothing (with priority + weight)
 - [x] 2 years of daily consumption per post × item driven by troop strength, season, temperature, activity level, plus noise and surge events
 - [x] Road graph: depot → field depot → post edges with distance, terrain difficulty, base speed, LineString geometry; include at least one alternate path (Route A / Route B to Post 7)
@@ -94,12 +94,12 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 - [ ] Live refresh: Supabase realtime on `stock_levels`/`alerts`, or 3 s polling
 - [ ] Projector check: readable at 1280px, colour + label (not colour alone) for status
 - [x] Map visibility fix (decided 2026-10-04; keep the 1.4fr map row):
-  - [x] Theatre toggle in the map header: All / Ladakh / Arunachal segmented `.btn`s (`aria-pressed`, blue = selected); filter the `FitBounds` points by `region` from `/locations`; default Ladakh; selecting an alert/row jumps to its post's theatre
+  - [x] Theatre toggle in the map header: All / Ladakh / Arunachal / Punjab segmented `.btn`s (`aria-pressed`, blue = selected); filter the `FitBounds` points by `region` from `/locations`; default Ladakh; selecting an alert/row jumps to its post's theatre
   - [x] State/country boundaries + place labels: add Esri `Canvas/World_Light_Gray_Reference` tile overlay above the base layer (no key); note in README that basemap borders are not authoritative
   - [x] Contrast: slight CSS contrast filter on the tile pane; open routes in Ink Tertiary and wider; marker radii 8/10/12 with a 2px white stroke (legend swatches to match)
   - [x] Labels: in a theatre view every post gets a permanent name label; in All only at-risk posts do
   - [x] Docs: DESIGN.md map section (toggle, overlay, radii/stroke); README "Using the dashboard" (VITE_API_URL, demo script pointer, re-seed + restart API, theatre toggle, map disclaimer)
-  - [x] Check at 1280×720: no overlapping post markers in the Ladakh view, all 13 markers in All, reference tiles 200, no panel overflow; demo click on P7 alert zooms to Ladakh with Route B highlighted
+  - [x] Check at 1280×720: no overlapping post markers in the Ladakh view, all 17 markers in All, reference tiles 200, no panel overflow; demo click on P7 alert zooms to Ladakh with Route B highlighted
 
 **Done when:** a new simulator reading shows up on the dashboard within 5 s, and clicking an alert walks forecast → route → dispatch.
 

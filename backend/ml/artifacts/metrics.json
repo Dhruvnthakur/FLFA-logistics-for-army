@@ -4,67 +4,67 @@
   "per_item": {
     "ammo": {
       "model": {
-        "mae": 0.317,
-        "mape": 21.78
+        "mae": 0.377,
+        "mape": 24.07
       },
       "baseline": {
-        "mae": 0.373,
-        "mape": 26.7
+        "mae": 0.415,
+        "mape": 27.63
       }
     },
     "diesel": {
       "model": {
-        "mae": 32.064,
-        "mape": 14.59
+        "mae": 33.5,
+        "mape": 15.3
       },
       "baseline": {
-        "mae": 41.391,
-        "mape": 18.6
+        "mae": 39.525,
+        "mape": 18.76
       }
     },
     "medical": {
       "model": {
-        "mae": 0.136,
-        "mape": 14.64
+        "mae": 0.151,
+        "mape": 15.96
       },
       "baseline": {
-        "mae": 0.173,
-        "mape": 19.06
+        "mae": 0.172,
+        "mape": 18.98
       }
     },
     "rations": {
       "model": {
-        "mae": 8.811,
-        "mape": 9.69
+        "mae": 8.957,
+        "mape": 9.7
       },
       "baseline": {
-        "mae": 9.232,
-        "mape": 10.09
+        "mae": 9.23,
+        "mape": 9.95
       }
     },
     "spares": {
       "model": {
-        "mae": 0.035,
-        "mape": 10.76
+        "mae": 0.043,
+        "mape": 12.39
       },
       "baseline": {
-        "mae": 0.037,
-        "mape": 11.71
+        "mae": 0.043,
+        "mape": 12.59
       }
     },
     "winter_clothing": {
       "model": {
-        "mae": 0.047,
-        "mape": 12.25
+        "mae": 0.046,
+        "mape": 12.78
       },
       "baseline": {
-        "mae": 0.062,
-        "mape": 16.27
+        "mae": 0.057,
+        "mape": 15.51
       }
     }
   },
   "overall_mape": {
-    "model": 13.95,
-    "baseline": 17.07
+    "model": 15.03,
+    "baseline": 17.24
   }
 }

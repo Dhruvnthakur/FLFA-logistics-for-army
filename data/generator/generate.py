@@ -3,28 +3,36 @@
 All names and coordinates are fictional (plausible terrain only). Run directly for a self-check:
     python data/generator/generate.py
 """
+import json
 import math
 import random
+from pathlib import Path
 from datetime import date, timedelta
 
 SEED = 42
 HISTORY_DAYS = 730
+ROADS_FILE = Path(__file__).with_name("roads.json")
 
 # id, name, kind, region, lat, lon, altitude_m, troop_strength, activity_level
+# Names are fictional; coordinates are snapped to real roads (OSRM) and checked to lie inside India's border.
 LOCATIONS = [
-    ("BD1", "Base Depot", "base_depot", "Northern Plains", 32.75, 74.85, 350, None, None),
-    ("FD1", "Field Depot North", "field_depot", "Ladakh", 34.15, 77.55, 3500, None, None),
-    ("FD2", "Field Depot East", "field_depot", "Arunachal", 27.60, 92.90, 2400, None, None),
-    ("P1", "Post 1", "post", "Ladakh", 34.55, 77.95, 4300, 80, 2),
-    ("P2", "Post 2", "post", "Ladakh", 34.30, 78.40, 4600, 60, 2),
-    ("P3", "Post 3", "post", "Ladakh", 33.95, 78.30, 4200, 120, 2),
-    ("P4", "Post 4", "post", "Ladakh", 34.80, 77.30, 4800, 50, 3),
-    ("P5", "Post 5", "post", "Ladakh", 33.70, 77.90, 3900, 150, 2),
-    ("P6", "Post 6", "post", "Ladakh", 32.95, 78.60, 4500, 70, 1),
-    ("P7", "Post 7", "post", "Ladakh", 33.40, 78.40, 5100, 90, 2),
-    ("P8", "Post 8", "post", "Arunachal", 27.90, 93.40, 3800, 100, 2),
-    ("P9", "Post 9", "post", "Arunachal", 28.10, 92.60, 4100, 70, 2),
-    ("P10", "Post 10", "post", "Arunachal", 27.75, 93.90, 3300, 110, 1),
+    ("BD1", "Base Depot North", "base_depot", "Northern Plains", 32.7499, 74.8500, 350, None, None),
+    ("BD2", "Base Depot East", "base_depot", "Assam", 26.7000, 92.9518, 80, None, None),
+    ("FD1", "Field Depot North", "field_depot", "Ladakh", 34.1499, 77.5504, 3500, None, None),
+    ("FD2", "Field Depot East", "field_depot", "Arunachal", 27.5967, 93.6799, 1600, None, None),
+    ("FD3", "Field Depot West", "field_depot", "Punjab", 31.5000, 74.9500, 230, None, None),
+    ("P1", "Post 1", "post", "Ladakh", 34.4895, 77.7415, 4300, 80, 2),
+    ("P2", "Post 2", "post", "Ladakh", 34.3330, 78.3092, 4600, 60, 2),
+    ("P3", "Post 3", "post", "Ladakh", 33.9218, 78.2795, 4200, 120, 2),
+    ("P4", "Post 4", "post", "Ladakh", 34.7309, 77.2180, 4800, 50, 3),
+    ("P5", "Post 5", "post", "Ladakh", 33.3578, 78.3651, 3900, 150, 2),
+    ("P6", "Post 6", "post", "Ladakh", 32.9488, 78.5985, 4500, 70, 1),
+    ("P7", "Post 7", "post", "Ladakh", 33.5533, 78.6291, 5100, 90, 2),
+    ("P8", "Post 8", "post", "Arunachal", 27.9000, 93.4001, 3800, 100, 2),
+    ("P9", "Post 9", "post", "Arunachal", 27.9549, 93.1318, 4100, 70, 2),
+    ("P10", "Post 10", "post", "Arunachal", 27.7859, 93.9213, 3300, 110, 1),
+    ("P11", "Post 11", "post", "Punjab", 31.1996, 74.7000, 200, 120, 2),
+    ("P12", "Post 12", "post", "Punjab", 31.8948, 74.8497, 230, 100, 2),
 ]
 
 # id, name, class, unit, weight_kg_per_unit, priority  (priority 1 = most urgent)
@@ -47,32 +55,38 @@ DEMAND = {
     "winter_clothing": (0.003, 0.0, 0.08, False),
 }
 
-# id, name, from, to, distance_km, terrain_difficulty (1-5), base_speed_kmh
-# Route A (direct, high pass) is shorter; Route B (via Post 5) is the long winding valley alternative —
-# long enough that closing Route A adds ~2 days of lead time to Post 7 (the demo).
+# id, name, from, to, terrain_difficulty (1-5), base_speed_kmh. Real road distance + geometry come from
+# roads.json (python data/generator/fetch_roads.py). Speeds are convoy speeds and the demo's tuning knobs:
+# Route A (direct, over the high pass) vs Route B (Indus valley via Post 5, then the rough track to Post 7) —
+# slow enough that closing Route A adds ~2 days of lead time to Post 7 (the demo).
 EDGES = [
-    ("E1", "Northern Supply Line", "BD1", "FD1", 420, 2, 40),
-    ("E2", "Eastern Supply Line", "BD1", "FD2", 2400, 2, 45),
-    ("E3", "FD1 - Post 1", "FD1", "P1", 80, 3, 30),
-    ("E4", "FD1 - Post 2", "FD1", "P2", 115, 3, 28),
-    ("E5", "FD1 - Post 3", "FD1", "P3", 100, 3, 30),
-    ("E6", "FD1 - Post 4", "FD1", "P4", 105, 4, 22),
-    ("E7", "Route B (leg 1)", "FD1", "P5", 85, 2, 35),
-    ("E8", "FD1 - Post 6", "FD1", "P6", 230, 3, 30),
-    ("E9", "Route A", "FD1", "P7", 140, 5, 30),
-    ("E10", "Route B (leg 2)", "P5", "P7", 260, 4, 20),
-    ("E11", "FD2 - Post 8", "FD2", "P8", 85, 3, 28),
-    ("E12", "FD2 - Post 9", "FD2", "P9", 90, 4, 24),
-    ("E13", "FD2 - Post 10", "FD2", "P10", 135, 3, 30),
+    ("E1", "Northern Supply Line", "BD1", "FD1", 2, 40),
+    ("E2", "Eastern Supply Line", "BD2", "FD2", 3, 30),
+    ("E3", "FD1 - Post 1", "FD1", "P1", 3, 30),
+    ("E4", "FD1 - Post 2", "FD1", "P2", 3, 28),
+    ("E5", "FD1 - Post 3", "FD1", "P3", 3, 30),
+    ("E6", "FD1 - Post 4", "FD1", "P4", 4, 22),
+    ("E7", "Route B (leg 1)", "FD1", "P5", 2, 35),
+    ("E8", "FD1 - Post 6", "FD1", "P6", 3, 30),
+    ("E9", "Route A", "FD1", "P7", 5, 34),
+    ("E10", "Route B (leg 2)", "P5", "P7", 4, 8),
+    ("E11", "FD2 - Post 8", "FD2", "P8", 3, 28),
+    ("E12", "FD2 - Post 9", "FD2", "P9", 4, 24),
+    ("E13", "FD2 - Post 10", "FD2", "P10", 3, 30),
+    ("E14", "Western Supply Line", "BD1", "FD3", 1, 45),
+    ("E15", "FD3 - Post 11", "FD3", "P11", 1, 40),
+    ("E16", "FD3 - Post 12", "FD3", "P12", 1, 40),
 ]
 
 # id, type, capacity_t, depot_id
 VEHICLES = [
-    *[(f"V{i}", "Heavy truck", 10, "BD1") for i in range(1, 5)],
+    *[(f"V{i}", "Heavy truck", 10, "BD1") for i in range(1, 3)],
+    *[(f"V{i}", "Heavy truck", 10, "BD2") for i in range(3, 5)],
     *[(f"V{i}", "Light truck", 2.5, "FD1") for i in range(5, 8)],
     *[(f"V{i}", "Medium truck", 5, "FD1") for i in range(8, 10)],
     *[(f"V{i}", "Light truck", 2.5, "FD2") for i in range(10, 12)],
     ("V12", "Medium truck", 5, "FD2"),
+    *[(f"V{i}", "Light truck", 2.5, "FD3") for i in range(13, 15)],
 ]
 
 DEMO_P7_DIESEL_DAYS = 12  # demo knob: start Green, simulator drains to Amber → Red
@@ -82,12 +96,13 @@ def point_wkt(lat, lon):
     return f"SRID=4326;POINT({lon} {lat})"
 
 
-def edge_wkt(rng, a, b):
-    # one jittered midpoint so roads don't look ruler-straight
-    (alat, alon), (blat, blon) = a, b
-    mlat = (alat + blat) / 2 + rng.uniform(-0.08, 0.08)
-    mlon = (alon + blon) / 2 + rng.uniform(-0.08, 0.08)
-    return f"SRID=4326;LINESTRING({alon} {alat}, {mlon} {mlat}, {blon} {blat})"
+def load_roads():
+    with open(ROADS_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def edge_wkt(coords):
+    return "SRID=4326;LINESTRING(" + ", ".join(f"{lon} {lat}" for lon, lat in coords) + ")"
 
 
 def temperature(rng, region, altitude_m, day):
@@ -142,7 +157,7 @@ def stock(rng, history):
         rows.append((pid, item, round(avg * days, 1), round(avg * 2, 1)))
 
     region_of = {l[0]: l[3] for l in LOCATIONS}
-    depots = {"BD1": None, "FD1": "Ladakh", "FD2": "Arunachal"}  # None = serves every post
+    depots = {"BD1": None, "BD2": None, "FD1": "Ladakh", "FD2": "Arunachal", "FD3": "Punjab"}  # None = every post
     for depot, region in depots.items():
         for item, *_ in ITEMS:
             avg = sum(v for (pid, it), v in recent.items()
@@ -153,9 +168,9 @@ def stock(rng, history):
 
 def generate(seed=SEED, end=None):
     rng = random.Random(seed)
-    coords = {l[0]: (l[4], l[5]) for l in LOCATIONS}
+    roads = load_roads()
     locations = [(i, n, k, r, alt, t, a, point_wkt(lat, lon)) for i, n, k, r, lat, lon, alt, t, a in LOCATIONS]
-    edges = [(*e, edge_wkt(rng, coords[e[2]], coords[e[3]])) for e in EDGES]
+    edges = [(i, n, a, b, roads[i]["distance_km"], t, v, edge_wkt(roads[i]["coords"])) for i, n, a, b, t, v in EDGES]
     history = consumption(rng, end)
     return {
         "locations": locations,
@@ -170,17 +185,17 @@ def generate(seed=SEED, end=None):
 if __name__ == "__main__":
     d = generate()
     posts = [l for l in d["locations"] if l[2] == "post"]
-    assert len(posts) == 10 and len(d["locations"]) == 13
-    assert len(d["consumption_history"]) == 10 * len(ITEMS) * HISTORY_DAYS
+    assert len(posts) == 12 and len(d["locations"]) == 17
+    assert len(d["consumption_history"]) == 12 * len(ITEMS) * HISTORY_DAYS
     assert all(r[3] >= 0 for r in d["consumption_history"])
     names = {e[1] for e in d["route_edges"]}
     assert {"Route A", "Route B (leg 1)", "Route B (leg 2)"} <= names
-    # every post reachable from BD1
+    # every post reachable from a base depot
     adj = {}
     for _, _, a, b, *_ in d["route_edges"]:
         adj.setdefault(a, set()).add(b)
         adj.setdefault(b, set()).add(a)
-    seen, todo = set(), ["BD1"]
+    seen, todo = set(), ["BD1", "BD2"]
     while todo:
         n = todo.pop()
         if n not in seen:
@@ -192,5 +207,5 @@ if __name__ == "__main__":
     jan = sum(r[3] for r in p7 if r[2].month == 1) / sum(1 for r in p7 if r[2].month == 1)
     jul = sum(r[3] for r in p7 if r[2].month == 7) / sum(1 for r in p7 if r[2].month == 7)
     assert jan > jul, (jan, jul)
-    assert len(d["stock_levels"]) == 13 * len(ITEMS)
+    assert len(d["stock_levels"]) == 17 * len(ITEMS)
     print(f"ok: {len(d['consumption_history'])} consumption rows; P7 diesel/day Jan {jan:.0f} L vs Jul {jul:.0f} L")

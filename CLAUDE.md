@@ -45,6 +45,7 @@ Backend venv lives in `backend/.venv` (Windows: `backend\.venv\Scripts\activate`
 - Frontend build: `npm run build` (in `frontend/`)
 - Seed (also applies `db/migrations/*.sql`, which are idempotent): `python data/generator/seed.py` (from repo root, backend venv active)
 - Generator self-check (no DB): `python data/generator/generate.py`
+- Real roads: edge distance + geometry live in committed `data/generator/roads.json`. After moving a location or adding an edge, re-run `python data/generator/fetch_roads.py` (public OSRM, one-off; warns if a node is >2 km off-road), then re-seed + retrain. Convoy speed/terrain stay synthetic in `EDGES`.
 - Tests: `python -m pytest` (in `backend/`; needs a live `DATABASE_URL`); single test: `python -m pytest tests/test_health.py::test_health_reports_db_and_postgis`
 - Train (also run after re-seeding; ~45s; artifacts in `backend/ml/artifacts/` are committed for Render): `python backend/ml/train.py` (repo root)
 - Simulator (API running; stdlib only): `python simulator/publish.py` (`--api URL`, `--interval 5`, `--ticks N`); demo: `--scenario drain-post7-diesel` (P7 diesel Green → Amber → Red in ~6 ticks). It mutates stock — re-seed to reset.
@@ -56,7 +57,7 @@ Backend venv lives in `backend/.venv` (Windows: `backend\.venv\Scripts\activate`
 `POST /readings` updates stock → days-of-supply recomputed from the forecast → Green/Amber/Red status → alert raised → dispatch plan regenerated. `PATCH /routes/{id}` or `POST /whatif` changes edge status/weather → NetworkX re-pathfinds → dispatch plan regenerated. The dashboard only reads (`/stock`, `/alerts`, `/routes`, `/dispatch-plan`) and polls every ≤5s. Full endpoint list: PRD §7; tables: PRD §6.
 
 ## Conventions
-- **Synthetic data only.** Never add real Army locations, unit names or data. Use plausible regions (Ladakh, Arunachal, etc.) with fictional post names (Post 1..N).
+- **Synthetic data only.** Never add real Army locations, unit names or data. Use plausible regions (Ladakh, Arunachal, Punjab, etc.) with fictional post names (Post 1..N).
 - **No SQLite.** Render wipes local disk; all state lives in Postgres.
 - Geo columns use PostGIS `geography(Point, 4326)` / `geography(LineString, 4326)`.
 - Config via env vars only: `DATABASE_URL`, `VITE_API_URL`, `WEATHER_MODE=live|sim`. Keep `.env.example` current; never commit `.env`.
@@ -71,4 +72,4 @@ In scope: the core pipeline above. **Deferred / optional:** MQTT (HiveMQ), OR-To
 ## The demo to protect
 "A snowstorm closes Route A → system re-forecasts → Post 7 flagged critical → convoy rerouted via Route B." Any change that breaks this end-to-end story is a regression.
 
-Script (fresh seed, `WEATHER_MODE=sim`, API restarted): P7 diesel starts Green (~9.7 days of supply; lead time 2.8 days via Route A). Run `python simulator/publish.py --scenario drain-post7-diesel --ticks 6` → Amber at ~3–4.5 days. Then `PATCH /routes/E9 {"status":"closed"}` → lead time 4.6 days via Route B (E7 → E10) → P7 diesel flips Red. Closing Route A on a fresh seed alone leaves it Green — drain first. Re-seed to reset. A judge must be able to trace one item (e.g. diesel at Post 7) from forecast to delivery plan in under 2 minutes.
+Script (fresh seed, `WEATHER_MODE=sim`, API restarted): P7 diesel starts Green (~9.4 days of supply; lead time 3.0 days via Route A over the pass). Run `python simulator/publish.py --scenario drain-post7-diesel --ticks 6` → Amber at ~3.5–4.5 days. Then `PATCH /routes/E9 {"status":"closed"}` → lead time 4.6 days via Route B (E7 → E10) → P7 diesel flips Red. Closing Route A on a fresh seed alone leaves it Green — drain first. Re-seed to reset. A judge must be able to trace one item (e.g. diesel at Post 7) from forecast to delivery plan in under 2 minutes.

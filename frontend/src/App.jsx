@@ -11,7 +11,7 @@ const RANK = { green: 0, amber: 1, red: 2 }
 const label = (s) => s[0].toUpperCase() + s.slice(1)
 // marker size doubles as a non-colour cue; the legend swatches use the same diameters (index.css .key)
 const RADIUS = { green: 8, amber: 10, red: 12 }
-const THEATRES = ['Ladakh', 'Arunachal', 'All']
+const THEATRES = ['Ladakh', 'Arunachal', 'Punjab', 'All']
 
 function Chip({ status }) {
   return <span className={`chip ${TONE[status]}`}>{label(status)}</span>
