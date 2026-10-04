@@ -50,6 +50,21 @@ def test_unreachable_post_has_no_vehicle():
     assert r["vehicle_id"] is None and r["origin"] is None and "no open route" in r["explanation"]
 
 
+def test_overflow_goes_to_far_depot_on_long_route():
+    p5 = {**stock_row("ammo", 1, 2.0), "location_id": "P5", "location_name": "Post 5"}
+    n = needs([stock_row("ammo", 1, 1.0), p5], {"ammo": 1.0}, {})
+    trucks = [{"id": "V5", "depot_id": "FD1", "free_t": 5.0, "dest": None},
+              {"id": "V1", "depot_id": "BD1", "free_t": 10.0, "dest": None}]
+    long = {"depot": "BD1", "nodes": ["BD1", "FD1", "P5"], "edges": ["E1", "E7"],
+            "edge_names": ["Northern Supply Line", "Route B (leg 1)"], "eta_hours": 20.0}
+    paths = {("FD1", "P7"): PATH, ("FD1", "P5"): {**PATH, "nodes": ["FD1", "P5"], "edges": ["E7"], "eta_hours": 4.0},
+             ("BD1", "P5"): long, ("BD1", "P7"): {**long, "nodes": ["BD1", "FD1", "P7"], "edges": ["E1", "E9"]}}
+    p7_row, p5_row = assign(n, trucks, paths, NOW)
+    assert p7_row["vehicle_id"] == "V5" and p7_row["path"] == ["FD1", "P7"]   # one post per truck: V5 is taken
+    assert p5_row["vehicle_id"] == "V1" and p5_row["path"] == ["BD1", "FD1", "P5"]   # overflow: base depot, 2 hops
+    assert "via Northern Supply Line, Route B (leg 1)" in p5_row["explanation"]
+
+
 def p7_diesel():
     return [r for r in c.get("/dispatch-plan").json()["plan"] if (r["destination"], r["item_id"]) == ("P7", "diesel")]
 

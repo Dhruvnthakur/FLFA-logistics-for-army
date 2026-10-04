@@ -249,8 +249,12 @@ path.border.state { stroke-width: 1.25; stroke-opacity: 0.6; stroke-dasharray: 6
   .panel { background: var(--panel-solid); border-color: var(--ink-3); }
   :root { --ink-3: #515154; }
 }
+.live-dot { display: inline-block; width: 8px; height: 8px; margin: 0 2px 0 8px; border-radius: 50%; background: var(--ok); vertical-align: middle; animation: live-pulse 0.8s ease-out; }
+@keyframes live-pulse { from { transform: scale(1.8); opacity: 0.3; } to { transform: scale(1); opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .row, .btn { transition: none; }
+  .live-dot { animation: none; }
   .btn:active { transform: none; }
 }
 

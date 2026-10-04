@@ -78,6 +78,7 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 - [x] Persist plan; `GET /dispatch-plan`, `PATCH /dispatch-plan/{id}` (approved/dispatched)
 - [x] Re-run planner on stock status change, route change, or what-if
 - [x] Test: ammo/medical scheduled before rations when capacity is short
+- [x] Long-route stress test: alternative roads E17–E20, `--scenario ladakh-winter`, tests for far-depot overflow and the E1 → E17 reroute; parallel roads keep the cheaper edge
 
 **Done when:** the plan for Post 7 diesel lists a vehicle, route and ETA, and changes when Route A closes.
 
@@ -91,7 +92,7 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 - [x] Alerts panel → click selects post/item and highlights route and dispatch row
 - [x] Dispatch table with Approve / Dispatched buttons
 - [x] Post view (single post: stock, days-of-supply, inbound convoys)
-- [ ] Live refresh: Supabase realtime on `stock_levels`/`alerts`, or 3 s polling
+- [x] Live refresh: 3 s polling of `/routes`, `/stock`, `/alerts`, `/dispatch-plan`; a tick is skipped while the previous load is in flight (`/dispatch-plan` re-plans, ~2.5 s); top-bar pill shows the last update time
 - [ ] Projector check: readable at 1280px, colour + label (not colour alone) for status
 - [x] Map visibility fix (decided 2026-10-04; keep the 1.4fr map row):
   - [x] Theatre toggle in the map header: All / Ladakh / Arunachal / Punjab segmented `.btn`s (`aria-pressed`, blue = selected); filter the `FitBounds` points by `region` from `/locations`; default Ladakh; selecting an alert/row jumps to its post's theatre

@@ -24,12 +24,13 @@ Full command list (tests, simulator, demo script, conventions) is in [CLAUDE.md]
 
 ## Using the dashboard
 
-Open http://localhost:5173 (the frontend finds the API through `VITE_API_URL` in the root `.env`, default `http://localhost:8000`).
+Open http://localhost:5173 (the frontend finds the API through `VITE_API_URL` in the root `.env`, default `http://localhost:8000`). The dashboard refreshes itself every 3 s; the pill in the top bar shows when it last updated.
 
 - **Select** an alert, stock-risk row or dispatch row: the map highlights its route, the Forecast panel shows the one-sentence explanation, actual vs predicted demand, the MAE/MAPE badge and inbound convoys, and the dispatch row is selected. Click again to deselect.
 - **Theatre toggle** (map header: Ladakh / Arunachal / Punjab / All, default Ladakh) frames one region so posts don't overlap; selecting a row jumps the map to that post's theatre.
 - **Try the demo** (fresh seed, `WEATHER_MODE=sim`): `python simulator/publish.py --scenario drain-post7-diesel --ticks 6`, then close Route A with `PATCH /routes/E9 {"status":"closed"}` (e.g. via http://localhost:8000/docs). Post 7 diesel goes Amber, then Red, and the convoy reroutes via Route B.
-- **Reset** after the simulator or route changes: re-run `python data/generator/seed.py`, then restart the API (forecasts are cached per process).
+- **Stress test: long routes** (fresh seed): `python simulator/publish.py --scenario ladakh-winter --ticks 5` drains every Ladakh post, so the dispatch plan grows from 2 to ~27 rows and Field Depot North's trucks run out; the overflow rides base-depot trucks over multi-hop routes (e.g. BD1 → FD1 → P5 → P6). Close `E1` (Northern Supply Line) and those convoys reroute over the Manali line, about 2.5 days later; close `E17` too and they become unassigned.
+- **Reset** after the simulator or route changes: re-run `python data/generator/seed.py`, then restart the API (forecasts are cached per process). The open dashboard picks up the reset within a few seconds.
 - **Data is synthetic.** Post names and locations are fictional. The basemap is Esri's light-grey canvas with its reference (place names) overlay; national lines (India's coast and land borders with its direct neighbours only, following India's official map) and state lines come from Natural Earth (`frontend/public/boundaries.geojson`). Neither is authoritative for disputed or administrative boundaries.
 
 ## Working rules

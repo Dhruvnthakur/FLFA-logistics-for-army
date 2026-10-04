@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.db import get_conn
 from app.main import app
+from app.services import routing
 from app.services.routing import risk_score, weather_status, worst
 
 os.environ["WEATHER_MODE"] = "sim"  # deterministic; never hits Open-Meteo
@@ -42,6 +43,26 @@ def test_closing_route_a_reroutes_post7_via_route_b():
     finally:
         with get_conn() as conn:
             conn.execute("update route_edges set status = %s where id = 'E9'", (manual0,))
+            conn.execute("delete from alerts where created_at >= %s", (t0,))
+            conn.execute("update alerts set resolved_at = null where resolved_at >= %s", (t0,))
+
+
+def test_closing_northern_line_reroutes_base_depot_via_manali():
+    with get_conn() as conn:
+        manual0 = conn.execute("select status from route_edges where id = 'E1'").fetchone()[0]
+        t0 = conn.execute("select now()").fetchone()[0]
+    try:
+        assert c.patch("/routes/E1", json={"status": "open"}).status_code == 200
+        with get_conn() as conn:
+            before = routing.depot_paths(conn, routing.edges(conn))[("BD1", "P1")]
+        assert before["edges"][0] == "E1", before
+        assert c.patch("/routes/E1", json={"status": "closed"}).status_code == 200
+        with get_conn() as conn:
+            after = routing.depot_paths(conn, routing.edges(conn))[("BD1", "P1")]
+        assert after["edges"][0] == "E17" and after["eta_hours"] > before["eta_hours"], after
+    finally:
+        with get_conn() as conn:
+            conn.execute("update route_edges set status = %s where id = 'E1'", (manual0,))
             conn.execute("delete from alerts where created_at >= %s", (t0,))
             conn.execute("update alerts set resolved_at = null where resolved_at >= %s", (t0,))
 

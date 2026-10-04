@@ -55,7 +55,7 @@ DEMAND = {
     "winter_clothing": (0.003, 0.0, 0.08, False),
 }
 
-# id, name, from, to, terrain_difficulty (1-5), base_speed_kmh. Real road distance + geometry come from
+# id, name, from, to, terrain_difficulty (1-5), base_speed_kmh[, via (lat, lon) waypoints]. Real road distance + geometry come from
 # roads.json (python data/generator/fetch_roads.py). Speeds are convoy speeds and the demo's tuning knobs:
 # Route A (direct, over the high pass) vs Route B (Indus valley via Post 5, then the rough track to Post 7) —
 # slow enough that closing Route A adds ~2 days of lead time to Post 7 (the demo).
@@ -76,6 +76,12 @@ EDGES = [
     ("E14", "Western Supply Line", "BD1", "FD3", 1, 45),
     ("E15", "FD3 - Post 11", "FD3", "P11", 1, 40),
     ("E16", "FD3 - Post 12", "FD3", "P12", 1, 40),
+    # alternatives that make the network more than a tree (long-route stress test). Deliberately no link into
+    # Post 7 other than Route A / B — one would undercut Route B and break the demo.
+    ("E17", "Manali Supply Line", "BD1", "FD1", 4, 30, (32.2432, 77.1892)),
+    ("E18", "Nyoma Link", "P5", "P6", 3, 25),
+    ("E19", "Lateral Road East", "P8", "P9", 3, 25),
+    ("E20", "Border Road West", "P11", "P12", 1, 40),
 ]
 
 # id, type, capacity_t, depot_id
@@ -170,7 +176,7 @@ def generate(seed=SEED, end=None):
     rng = random.Random(seed)
     roads = load_roads()
     locations = [(i, n, k, r, alt, t, a, point_wkt(lat, lon)) for i, n, k, r, lat, lon, alt, t, a in LOCATIONS]
-    edges = [(i, n, a, b, roads[i]["distance_km"], t, v, edge_wkt(roads[i]["coords"])) for i, n, a, b, t, v in EDGES]
+    edges = [(i, n, a, b, roads[i]["distance_km"], t, v, edge_wkt(roads[i]["coords"])) for i, n, a, b, t, v, *_ in EDGES]
     history = consumption(rng, end)
     return {
         "locations": locations,

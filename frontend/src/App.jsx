@@ -1,9 +1,10 @@
-import { Children, useCallback, useEffect, useMemo, useState } from 'react'
+import { Children, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CircleMarker, GeoJSON, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import Forecast from './components/Forecast'
 
 const API = import.meta.env.VITE_API_URL
+const POLL_MS = 3000 // live refresh; a tick is skipped while the previous one is still loading (/dispatch-plan ~2.5 s)
 
 // API status words → chip tone + label. Stock: green/amber/red; routes: open/degraded/closed.
 const TONE = { green: 'ok', amber: 'warn', red: 'crit', open: 'ok', degraded: 'warn', closed: 'crit' }
@@ -116,6 +117,8 @@ export default function App() {
   const [selection, setSelection] = useState(null) // { postId, itemId }
   const [theatre, setTheatre] = useState('Ladakh')
   const [borders, setBorders] = useState(null)
+  const [updated, setUpdated] = useState(null) // time of the last successful /stock load
+  const busy = useRef(false)
   const points = useMemo(
     () => places.filter((p) => theatre === 'All' || p.region === theatre).map((p) => p.latlng),
     [places, theatre],
@@ -139,20 +142,31 @@ export default function App() {
     if (next && regionOf[postId]) setTheatre(regionOf[postId]) // jump to the post's theatre; deselecting keeps the user's choice
   }
 
-  // the four live feeds; polling (item 8) will call this on a timer
+  // the four live feeds, polled every POLL_MS
   const load = useCallback(() => {
     const get = (path, then) =>
       fetch(`${API}${path}`)
-        .then((r) => r.json())
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
         .then(then)
-        .catch(() => {})
-    get('/routes', (d) =>
-      setRoutes(d.features.map((f) => ({ ...f.properties, line: f.geometry.coordinates.map(([lng, lat]) => [lat, lng]) }))),
-    )
-    get('/stock', (d) => setStock(d.stock))
-    get('/alerts', (d) => setAlerts(d.alerts))
-    get('/dispatch-plan', (d) => setPlan(d.plan))
+    return Promise.allSettled([
+      get('/routes', (d) =>
+        setRoutes(d.features.map((f) => ({ ...f.properties, line: f.geometry.coordinates.map(([lng, lat]) => [lat, lng]) }))),
+      ),
+      get('/stock', (d) => (setStock(d.stock), setUpdated(new Date()))),
+      get('/alerts', (d) => setAlerts(d.alerts)),
+      get('/dispatch-plan', (d) => setPlan(d.plan)),
+    ])
   }, [])
+
+  useEffect(() => {
+    const tick = () => {
+      if (busy.current) return
+      busy.current = true
+      load().finally(() => (busy.current = false))
+    }
+    const t = setInterval(tick, POLL_MS)
+    return () => clearInterval(t)
+  }, [load])
 
   const advance = (row) => {
     fetch(`${API}/dispatch-plan/${row.id}`, {
@@ -201,6 +215,9 @@ export default function App() {
         <h1>Forward Logistics Command</h1>
         <span className="pill" role="status">
           {health}
+          {/* keyed on the load time: the dot remounts and replays its pulse on every refresh */}
+          {updated && <span key={+updated} className="live-dot" aria-hidden="true" />}
+          {updated && ` updated ${updated.toLocaleTimeString([], { hour12: false })}`}
         </span>
       </header>
       <main className="board">

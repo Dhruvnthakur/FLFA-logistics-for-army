@@ -15,12 +15,12 @@ SNAP_WARN_M = 2000  # a node this far from the nearest road is probably off-road
 def main():
     at = {l[0]: (l[4], l[5]) for l in LOCATIONS}
     out = {}
-    for eid, name, a, b, *_ in EDGES:
-        pts = ";".join(f"{at[n][1]},{at[n][0]}" for n in (a, b))
+    for eid, name, a, b, _, _, *via in EDGES:
+        pts = ";".join(f"{lon},{lat}" for lat, lon in [at[a], *via, at[b]])
         with urllib.request.urlopen(OSRM + pts + "?overview=simplified&geometries=geojson", timeout=30) as r:
             body = json.load(r)
         route = body["routes"][0]
-        for n, w in zip((a, b), body["waypoints"]):
+        for n, w in zip((a, *via, b), body["waypoints"]):
             if w["distance"] > SNAP_WARN_M:
                 print(f"WARN {eid}: {n} is {w['distance'] / 1000:.1f} km from the nearest road")
         coords = [[round(x, 5), round(y, 5)] for x, y in route["geometry"]["coordinates"]]

@@ -54,11 +54,15 @@ def edges(conn):
 
 
 def graph(es):
-    """Open/degraded edges only. weight = hours × (1 + risk/100)."""
+    """Open/degraded edges only. weight = hours × (1 + risk/100). Parallel roads between the same two nodes
+    (e.g. E1 / E17 BD1–FD1) keep only the cheaper one — a plain Graph would let the last one overwrite."""
     g = nx.Graph()
     for e in es:
-        if e["status"] != "closed":
-            g.add_edge(e["from"], e["to"], weight=e["eta_hours"] * (1 + e["risk"] / 100), edge=e)
+        if e["status"] == "closed":
+            continue
+        w = e["eta_hours"] * (1 + e["risk"] / 100)
+        if not g.has_edge(e["from"], e["to"]) or w < g.edges[e["from"], e["to"]]["weight"]:
+            g.add_edge(e["from"], e["to"], weight=w, edge=e)
     return g
 
 
