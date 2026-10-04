@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import Forecast from './components/Forecast'
 import WhatIf from './components/WhatIf'
 
-const API = import.meta.env.VITE_API_URL
+import { API } from './api'
 const POLL_MS = 3000 // live refresh; a tick is skipped while the previous one is still loading (/dispatch-plan ~2.5 s)
 
 // API status words → chip tone + label. Stock: green/amber/red; routes: open/degraded/closed.

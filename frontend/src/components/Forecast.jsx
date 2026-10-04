@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
-const API = import.meta.env.VITE_API_URL
+import { API } from '../api'
 const short = (iso) => iso.slice(5)
 
 // Forecast + post view for the selected post × item: the one-sentence explanation, stock facts,
