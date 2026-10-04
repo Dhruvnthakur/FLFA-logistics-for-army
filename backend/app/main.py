@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -26,8 +27,8 @@ app.include_router(routes.router)
 app.include_router(dispatch.router)
 app.include_router(whatif.router)
 
-# ponytail: open CORS for dev; lock to the Vercel domain in Phase 8
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174").split(",")
+app.add_middleware(CORSMiddleware, allow_origins=[o.strip().rstrip("/") for o in origins if o.strip()], allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/health")
