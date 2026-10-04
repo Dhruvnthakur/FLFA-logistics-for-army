@@ -159,11 +159,12 @@ export default function App() {
       get('/routes', (d) =>
         setRoutes(d.features.map((f) => ({ ...f.properties, line: f.geometry.coordinates.map(([lng, lat]) => [lat, lng]) }))),
       ),
-      get('/stock', (d) => (setStock(d.stock), setUpdated(new Date()))),
+      // the pill follows the live feed, so a blocked /health call (ad blockers do that) can't mark a working API as down
+      get('/stock', (d) => (setStock(d.stock), setUpdated(new Date()), setHealth((h) => (h.startsWith('API ok') ? h : 'API ok')))),
       get('/alerts', (d) => setAlerts(d.alerts)),
       get('/dispatch-plan', (d) => setPlan(d.plan)),
       get('/whatif', (d) => setActive(d.active)),
-    ])
+    ]).then(([, stock]) => stock.status === 'rejected' && setHealth('API unreachable'))
   }, [])
 
   useEffect(() => {
@@ -218,7 +219,7 @@ export default function App() {
     fetch(`${API}/health`)
       .then((r) => r.json())
       .then((d) => setHealth(d.status === 'ok' ? `API ok · PostGIS ${d.postgis}` : `API error: ${d.db}`))
-      .catch(() => setHealth('API unreachable'))
+      .catch(() => {}) // PostGIS version is a nicety; load() sets the pill from /stock
     fetch(`${API}/locations`)
       .then((r) => r.json())
       .then((d) =>
