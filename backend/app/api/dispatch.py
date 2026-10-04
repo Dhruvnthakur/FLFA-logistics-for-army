@@ -14,7 +14,10 @@ def get_dispatch_plan():
     """FR-19: current recommendations, re-planned on every read so stock, route, weather and what-if changes
     always show (~0.1 s warm). Row ids survive re-plans while post × item × vehicle is unchanged."""
     with get_conn() as conn:
-        dispatch.replan(conn)
+        # one re-plan at a time: on a slow CPU (Render free) a re-plan outlasts the poll interval, so readers that
+        # queued behind the lock would pile up past the proxy timeout. A reader that can't get it serves the saved plan.
+        if conn.execute("select pg_try_advisory_xact_lock(5005)").fetchone()[0]:
+            dispatch.replan(conn)
         return {"target_days": dispatch.TARGET_DAYS, "plan": dispatch.plan(conn)}
 
 
