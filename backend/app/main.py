@@ -1,7 +1,9 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import psycopg
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,9 +15,15 @@ from app.db import get_conn
 @asynccontextmanager
 async def lifespan(_):
     # migrations are idempotent; applying them here means a fresh Render deploy never serves without whatif_state
-    with get_conn() as conn:
-        for sql in sorted((Path(__file__).resolve().parents[2] / "db" / "migrations").glob("*.sql")):
-            conn.execute(sql.read_text(encoding="utf-8"))
+    # ALTER TABLE takes an exclusive lock even when it is a no-op, so while the previous instance is still serving
+    # (rolling deploy) it can wait out the statement timeout; give up fast and boot on the already-migrated schema
+    try:
+        with get_conn() as conn:
+            conn.execute("set lock_timeout = '5s'")
+            for sql in sorted((Path(__file__).resolve().parents[2] / "db" / "migrations").glob("*.sql")):
+                conn.execute(sql.read_text(encoding="utf-8"))
+    except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
+        logging.getLogger("uvicorn.error").warning("migrations skipped: lock wait timed out; assuming schema is current")
     yield
 
 
