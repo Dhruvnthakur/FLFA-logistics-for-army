@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.api import dispatch, forecast, locations, routes, stock, whatif
 from app.db import get_conn
+from app.services.stock import all_stock
 
 
 @asynccontextmanager
@@ -24,7 +26,18 @@ async def lifespan(_):
                 conn.execute(sql.read_text(encoding="utf-8"))
     except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
         logging.getLogger("uvicorn.error").warning("migrations skipped: lock wait timed out; assuming schema is current")
+    threading.Thread(target=_warm_demand, daemon=True).start()
     yield
+
+
+def _warm_demand():
+    # the first /stock after boot fills the per-pair demand cache (minutes on Render's free CPU); do it in the background
+    # so /health answers at once and the first dashboard poll is already warm
+    try:
+        with get_conn() as conn:
+            all_stock(conn)
+    except Exception:
+        logging.getLogger("uvicorn.error").exception("demand warm-up failed")
 
 
 app = FastAPI(title="Forward Logistics API", lifespan=lifespan)
