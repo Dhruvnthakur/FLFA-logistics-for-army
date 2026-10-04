@@ -77,7 +77,7 @@ function Row({ grid, selected, onSelect, children }) {
 const days = (d) => (d == null ? '—' : `${d.toFixed(1)} d`)
 const etaDays = (iso) => Math.max(0, (new Date(iso) - Date.now()) / 864e5)
 const NEXT = { proposed: ['approved', 'Approve'], approved: ['dispatched', 'Dispatch'] }
-const GRID_STOCK = '3rem minmax(0, 1fr) 5rem 4rem'
+const GRID_STOCK = '2.5rem minmax(0, 1fr) 4.75rem 4rem'
 const GRID_PLAN = '4rem minmax(0, 1fr) 4.5rem 4rem 5.25rem'
 
 function Panel({ title, className = '', role, children }) {

@@ -93,7 +93,7 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 - [x] Dispatch table with Approve / Dispatched buttons
 - [x] Post view (single post: stock, days-of-supply, inbound convoys)
 - [x] Live refresh: 3 s polling of `/routes`, `/stock`, `/alerts`, `/dispatch-plan`; a tick is skipped while the previous load is in flight (`/dispatch-plan` re-plans, ~2.5 s); top-bar pill shows the last update time
-- [ ] Projector check: readable at 1280px, colour + label (not colour alone) for status
+- [x] Projector check at 1280×720: no page or panel overflow, no clipped cells, every status chip carries a text label; Stock risk widened (bottom row 1fr 1fr, tighter status column) so item names fit
 - [x] Map visibility fix (decided 2026-10-04; keep the 1.4fr map row):
   - [x] Theatre toggle in the map header: All / Ladakh / Arunachal / Punjab segmented `.btn`s (`aria-pressed`, blue = selected); filter the `FitBounds` points by `region` from `/locations`; default Ladakh; selecting an alert/row jumps to its post's theatre
   - [x] State/country boundaries + place labels: add Esri `Canvas/World_Light_Gray_Reference` tile overlay above the base layer (no key); note in README that basemap borders are not authoritative
