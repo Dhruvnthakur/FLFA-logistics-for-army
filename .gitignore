@@ -9,3 +9,5 @@ dist/
 .impeccable/questions/
 .impeccable/review/
 .impeccable/hook.cache.json
+
+*.log

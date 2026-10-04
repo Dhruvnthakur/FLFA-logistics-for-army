@@ -13,7 +13,7 @@ from generate import generate
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 
-TABLES = ["dispatch_plans", "alerts", "vehicles", "weather", "route_edges", "consumption_history",
+TABLES = ["whatif_state", "dispatch_plans", "alerts", "vehicles", "weather", "route_edges", "consumption_history",
           "stock_readings", "stock_levels", "items", "locations"]
 
 

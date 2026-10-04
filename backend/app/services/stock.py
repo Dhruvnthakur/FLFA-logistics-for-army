@@ -2,7 +2,7 @@
 import math
 
 from app.services import routing
-from app.services.forecasting import days_of_supply, daily_demand, explain
+from app.services.forecasting import days_of_supply, daily_demand, explain, troop_scale
 
 HANDLING_DAYS = 2.0          # load, convoy clearance, unload — on top of driving time
 DRIVING_HOURS_PER_DAY = 6.0  # high-altitude convoys move in daylight windows only
@@ -45,11 +45,11 @@ ROW_KEYS = ["location_id", "location_name", "kind", "item_id", "item_name", "uni
             "quantity", "safety_stock", "updated_at"]
 
 
-def evaluate(conn, row, leads):
+def evaluate(conn, row, leads, scale=None):
     """Stock row dict → same dict plus days_of_supply, lead time, status, explanation.
     leads: post_id → lead time days (from lead_times)."""
     qty, safety = float(row["quantity"]), float(row["safety_stock"])
-    demand = daily_demand(conn, row["location_id"], row["item_id"]) if row["kind"] == "post" else None
+    demand = daily_demand(conn, row["location_id"], row["item_id"], scale) if row["kind"] == "post" else None
     dos = days_of_supply(qty, demand[1]) if demand else None
     lead = leads.get(row["location_id"]) if row["kind"] == "post" else None
     st = status(qty, safety, dos, lead if lead is not None else math.inf)
@@ -69,7 +69,8 @@ def evaluate(conn, row, leads):
 def all_stock(conn, leads=None):
     leads = leads if leads is not None else lead_times(conn)
     rows = conn.execute(ROW_SQL + " order by s.location_id, i.priority").fetchall()
-    return [evaluate(conn, dict(zip(ROW_KEYS, r)), leads) for r in rows]
+    scale = troop_scale(conn)
+    return [evaluate(conn, dict(zip(ROW_KEYS, r)), leads, scale) for r in rows]
 
 
 def one_stock(conn, location_id, item_id, leads):

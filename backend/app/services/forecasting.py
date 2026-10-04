@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
+from app.db import get_state
+
 ARTIFACTS = Path(__file__).resolve().parents[2] / "ml" / "artifacts"
 FEATURES = ["lag1", "lag7", "lag14", "roll7", "roll14", "doy_sin", "doy_cos", "troops", "temp", "activity"]
 HOLDOUT_DAYS = 60
@@ -137,17 +139,34 @@ MAX_DAYS = 30
 _demand = {}  # (post_id, item_id) -> (start_date, 30-day daily forecast); history is static between seeds
 
 
-def daily_demand(conn, post_id, item_id):
+def troop_scale(conn):
+    """What-if troop changes → {post_id: new strength / base strength}. One query; empty at baseline."""
+    troops = get_state(conn, "troops", {})
+    if not troops:
+        return {}
+    return {pid: troops[pid] / base for pid, base in conn.execute(
+        "select id, troop_strength from locations where id = any(%s) and troop_strength > 0", (list(troops),))}
+
+
+def daily_demand(conn, post_id, item_id, scale=None):
     """Cached 30-day demand forecast, or None if there is no history (e.g. depots).
-    Demand doesn't depend on stock, so readings never invalidate it."""
+    Demand doesn't depend on stock, so readings never invalidate it. scale: troop_scale(conn), pass it
+    when looping so the what-if state is read once per request."""
     # ponytail: process-lifetime cache (~0.3 s/pair cold); restart the API after re-seed/retrain
+    # what-if troop change: demand scales with strength (the model holds troops constant, lags would swamp it)
     key = (post_id, item_id)
     if key not in _demand:
         hist = history(conn, post_id, item_id)
         _demand[key] = None if hist.empty else (
             hist["date"].iloc[-1] + timedelta(days=1),
             forecast_series(load_models()[item_id], hist, MAX_DAYS, seasonal_temp(hist)))
-    return _demand[key]
+    if _demand[key] is None:
+        return None
+    k = (troop_scale(conn) if scale is None else scale).get(post_id)
+    if k is None:
+        return _demand[key]
+    start, daily = _demand[key]
+    return start, [q * k for q in daily]
 
 
 def forecast(conn, post_id, item_id, days):

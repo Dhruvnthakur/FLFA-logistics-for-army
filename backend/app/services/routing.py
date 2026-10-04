@@ -1,6 +1,7 @@
 """Route status, risk and best paths (FR-12, FR-13, FR-15). Plain functions over route_edges + weather."""
 import networkx as nx
 
+from app.db import get_state
 from app.services.weather import node_weather
 
 LEVELS = ["open", "degraded", "closed"]
@@ -40,10 +41,18 @@ order by e.id
 def edges(conn):
     """Every edge with manual + weather status, effective status, risk and travel hours (None when closed)."""
     wx = node_weather(conn)
+    storms = get_state(conn, "storms", [])
+    stormed = {r[0] for r in conn.execute(  # what-if storms close every road they touch (one query for all)
+        "select e.id from route_edges e join unnest(%s::float8[], %s::float8[], %s::float8[]) s(lon, lat, r)"
+        " on st_dwithin(e.geom, st_point(s.lon, s.lat, 4326)::geography, s.r)",
+        ([s["lon"] for s in storms], [s["lat"] for s in storms], [s["radius_km"] * 1000 for s in storms]))
+    } if storms else set()
     out = []
     for eid, name, a, b, dist, terrain, speed, manual, alt, geom in conn.execute(EDGE_SQL).fetchall():
         node_st = [weather_status(wx[n]["days"][0]) for n in (a, b) if n in wx]
         w_st, why = max(node_st, key=lambda s: LEVELS.index(s[0]), default=("open", None))
+        if eid in stormed:
+            w_st, why = "closed", "storm"
         st = worst(manual, w_st)
         speed = float(speed) * (DEGRADED_SPEED if st == "degraded" else 1)
         out.append({"id": eid, "name": name, "from": a, "to": b, "distance_km": float(dist),

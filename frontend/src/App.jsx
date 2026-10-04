@@ -2,6 +2,7 @@ import { Children, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { CircleMarker, GeoJSON, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import Forecast from './components/Forecast'
+import WhatIf from './components/WhatIf'
 
 const API = import.meta.env.VITE_API_URL
 const POLL_MS = 3000 // live refresh; a tick is skipped while the previous one is still loading (/dispatch-plan ~2.5 s)
@@ -118,6 +119,12 @@ export default function App() {
   const [theatre, setTheatre] = useState('Ladakh')
   const [borders, setBorders] = useState(null)
   const [updated, setUpdated] = useState(null) // time of the last successful /stock load
+  const [active, setActive] = useState([]) // what-if scenarios applied on top of the baseline
+  const [wiOpen, setWiOpen] = useState(false)
+  const [wiResult, setWiResult] = useState(null) // { kind: 'run' | 'reset', diff } of the last what-if call
+  const [wiBusy, setWiBusy] = useState(false)
+  const [wiError, setWiError] = useState(null)
+  const wiTrigger = useRef(null)
   const busy = useRef(false)
   const points = useMemo(
     () => places.filter((p) => theatre === 'All' || p.region === theatre).map((p) => p.latlng),
@@ -155,6 +162,7 @@ export default function App() {
       get('/stock', (d) => (setStock(d.stock), setUpdated(new Date()))),
       get('/alerts', (d) => setAlerts(d.alerts)),
       get('/dispatch-plan', (d) => setPlan(d.plan)),
+      get('/whatif', (d) => setActive(d.active)),
     ])
   }, [])
 
@@ -167,6 +175,24 @@ export default function App() {
     const t = setInterval(tick, POLL_MS)
     return () => clearInterval(t)
   }, [load])
+
+  // what-if calls: surface the API's message, refresh every feed straight away, keep the diff for the sheet
+  const whatif = (path, kind, body) => {
+    if (wiBusy) return Promise.resolve()
+    setWiBusy(true)
+    setWiError(null)
+    return fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : 'That scenario was rejected. Check the values.')
+        return d
+      })
+      .then((d) => (setWiResult({ kind, diff: d.diff }), load()))
+      .catch((e) => (setWiError(e.message), setWiOpen(true))) // errors show in the sheet, wherever the call came from
+      .finally(() => setWiBusy(false))
+  }
+  const runWhatIf = (body) => whatif('/whatif', 'run', body)
+  const resetWhatIf = () => whatif('/whatif/reset', 'reset').then(() => setWiOpen(true))
 
   const advance = (row) => {
     fetch(`${API}/dispatch-plan/${row.id}`, {
@@ -202,6 +228,7 @@ export default function App() {
             name: f.properties.name,
             kind: f.properties.kind,
             region: f.properties.region,
+            troops: f.properties.troop_strength,
             latlng: [f.geometry.coordinates[1], f.geometry.coordinates[0]],
           })),
         ),
@@ -213,12 +240,22 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <h1>Forward Logistics Command</h1>
+        <div className="topbar-end">
+        <button ref={wiTrigger} type="button" className="btn" aria-expanded={wiOpen} onClick={() => setWiOpen((o) => !o)}>
+          What-if
+        </button>
+        {active.length > 0 && (
+          <button type="button" className="pill scenario" disabled={wiBusy} onClick={resetWhatIf} title={active.map((s) => s.label).join(', ')}>
+            Scenario active ({active.length}) · Reset
+          </button>
+        )}
         <span className="pill" role="status">
           {health}
           {/* keyed on the load time: the dot remounts and replays its pulse on every refresh */}
           {updated && <span key={+updated} className="live-dot" aria-hidden="true" />}
           {updated && ` updated ${updated.toLocaleTimeString([], { hour12: false })}`}
         </span>
+        </div>
       </header>
       <main className="board">
         <section className="panel map-panel">
@@ -418,6 +455,20 @@ export default function App() {
           </Board>
         </div>
       </main>
+      <WhatIf
+        open={wiOpen}
+        onClose={() => setWiOpen(false)}
+        triggerRef={wiTrigger}
+        routes={routes}
+        posts={places.filter((p) => p.kind === 'post')}
+        active={active}
+        result={wiResult}
+        run={runWhatIf}
+        reset={resetWhatIf}
+        busy={wiBusy}
+        error={wiError}
+        Chip={Chip}
+      />
     </div>
   )
 }

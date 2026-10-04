@@ -107,12 +107,12 @@ Phase-wise checklist. Tick boxes as work lands. FR IDs refer to [PRD.md](PRD.md)
 ---
 
 ## Phase 7 — What-if simulator (FR-23, FR-24)
-- [ ] `POST /whatif` scenarios: `close_route`, `storm(region)`, `troop_change(post, strength)`
-- [ ] Snapshot current plan, apply scenario, re-run forecast → status → routing → dispatch
-- [ ] Return before/after diff (rerouted items, ETA changes, new Red posts)
-- [ ] `POST /whatif/reset` restores baseline
-- [ ] UI panel: scenario picker, Run, Reset, diff view; map updates live
-- [ ] Test: storm over Route A region closes it and diff shows reroute
+- [x] `POST /whatif` scenarios: `close_route`, `storm(route, radius)` (circle 80% along the road; spec said region), `troop_change(post, strength)`
+- [x] Snapshot current plan, apply scenario, re-scale forecast (troop change scales demand) → status → routing → dispatch
+- [x] Return before/after diff (rerouted items, ETA changes, new Red posts)
+- [x] `POST /whatif/reset` restores baseline
+- [x] UI panel: scenario picker, Run, Reset, diff view; map updates live
+- [x] Test: storm over Route A region closes it and diff shows reroute
 
 **Done when:** the full demo story (storm → Route A closed → Post 7 Red → reroute via Route B) runs from the UI.
 
