@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: forward-supply-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.7
+      - key: DATABASE_URL
+        sync: false
+      - key: WEATHER_MODE
+        value: sim
+      - key: CORS_ORIGINS
+        sync: false
