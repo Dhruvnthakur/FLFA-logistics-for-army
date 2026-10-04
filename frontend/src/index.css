@@ -182,11 +182,21 @@ body {
 
 /* map: the one place status colour leaves a chip, so every colour is also a shape or dash and the legend labels it */
 .leaflet-interactive.route { fill: none; stroke-width: 5; stroke-linecap: round; stroke-opacity: 0.9; }
-.route.open { stroke: var(--ink-3); stroke-opacity: 0.8; } /* open is the quiet default; colour only marks trouble */
+.map-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding-right: var(--s3); }
+.map-head h2 { margin: 0; padding: var(--s3) var(--s4) var(--s1); font-size: var(--t-lg); font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
+.seg { display: flex; gap: var(--s1); }
+.seg .btn:focus-visible { border-radius: 999px; }
+.seg .btn[aria-pressed='true']::before { content: '\2713\00a0'; } /* selected is a check mark, not colour alone */
+.map-panel .leaflet-tile-pane { filter: contrast(1.15) brightness(0.97); }
+path.border { fill: none; stroke: var(--ink); stroke-linejoin: round; }
+path.border.national { stroke-width: 1.75; stroke-opacity: 0.65; }
+path.border.state { stroke-width: 1.25; stroke-opacity: 0.6; stroke-dasharray: 6 4; }
+.leaflet-interactive.route.open { stroke-width: 6; }
+.route.open { stroke: var(--ink-3); stroke-opacity: 1; } /* open is the quiet default; colour only marks trouble */
 .route.degraded { stroke: var(--warn); stroke-dasharray: 10 7; }
 .route.closed { stroke: var(--crit); stroke-dasharray: 2 8; }
 .route-sel { fill: none; stroke: var(--accent); stroke-width: 12; stroke-opacity: 0.3; stroke-linecap: round; }
-.leaflet-interactive.marker { stroke: #fff; stroke-width: 1.5; fill-opacity: 1; }
+.leaflet-interactive.marker { stroke: #fff; stroke-width: 2; fill-opacity: 1; }
 .marker.green { fill: var(--ok); }
 .marker.amber { fill: var(--warn); }
 .marker.red { fill: var(--crit); }
@@ -222,13 +232,13 @@ body {
   color: var(--ink-2);
 }
 .legend li { display: flex; align-items: center; gap: 6px; }
-.key { width: 10px; height: 10px; flex: none; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.key { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
 .key.green { background: var(--ok); }
-.key.amber { background: var(--warn); width: 14px; height: 14px; }
-.key.red { background: var(--crit); width: 18px; height: 18px; }
+.key.amber { background: var(--warn); width: 20px; height: 20px; }
+.key.red { background: var(--crit); width: 24px; height: 24px; }
 .key.depot { background: #fff; border-color: var(--ink); box-shadow: none; }
 .key.line { width: 22px; height: 3px; border: 0; border-radius: 0; box-shadow: none; }
-.key.line.open { background: rgb(110 110 115 / 0.55); }
+.key.line.open { background: var(--ink-3); height: 4px; }
 .key.line.degraded { background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 10px); }
 .key.line.closed { background: repeating-linear-gradient(90deg, var(--crit) 0 2px, transparent 2px 5px); }
 .map-panel .leaflet-container { flex: 1; border-radius: 0 0 var(--r) var(--r); background: #e8eaed; }

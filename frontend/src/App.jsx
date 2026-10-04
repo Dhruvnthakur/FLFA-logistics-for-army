@@ -1,5 +1,5 @@
 import { Children, useCallback, useEffect, useMemo, useState } from 'react'
-import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, GeoJSON, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import Forecast from './components/Forecast'
 
@@ -10,7 +10,8 @@ const TONE = { green: 'ok', amber: 'warn', red: 'crit', open: 'ok', degraded: 'w
 const RANK = { green: 0, amber: 1, red: 2 }
 const label = (s) => s[0].toUpperCase() + s.slice(1)
 // marker size doubles as a non-colour cue; the legend swatches use the same diameters (index.css .key)
-const RADIUS = { green: 6, amber: 8, red: 10 }
+const RADIUS = { green: 8, amber: 10, red: 12 }
+const THEATRES = ['Ladakh', 'Arunachal', 'All']
 
 function Chip({ status }) {
   return <span className={`chip ${TONE[status]}`}>{label(status)}</span>
@@ -113,7 +114,13 @@ export default function App() {
   const [plan, setPlan] = useState([])
   const [metrics, setMetrics] = useState(null)
   const [selection, setSelection] = useState(null) // { postId, itemId }
-  const points = useMemo(() => places.map((p) => p.latlng), [places])
+  const [theatre, setTheatre] = useState('Ladakh')
+  const [borders, setBorders] = useState(null)
+  const points = useMemo(
+    () => places.filter((p) => theatre === 'All' || p.region === theatre).map((p) => p.latlng),
+    [places, theatre],
+  )
+  const regionOf = useMemo(() => Object.fromEntries(places.map((p) => [p.id, p.region])), [places])
   const worst = useMemo(() => worstByPost(stock), [stock])
   const stockRows = useMemo(
     () =>
@@ -126,7 +133,11 @@ export default function App() {
   const selPlan = selection && plan.find((p) => p.destination === selection.postId && p.item_id === selection.itemId)
   const selRow = selection && stock.find((r) => r.location_id === selection.postId && r.item_id === selection.itemId)
   const selEdges = selPlan?.edges ?? []
-  const select = (postId, itemId) => setSelection((cur) => (same(cur, { postId, itemId }) ? null : { postId, itemId }))
+  const select = (postId, itemId) => {
+    const next = same(selection, { postId, itemId }) ? null : { postId, itemId }
+    setSelection(next)
+    if (next && regionOf[postId]) setTheatre(regionOf[postId]) // jump to the post's theatre; deselecting keeps the user's choice
+  }
 
   // the four live feeds; polling (item 8) will call this on a timer
   const load = useCallback(() => {
@@ -159,6 +170,10 @@ export default function App() {
 
   useEffect(() => {
     load()
+    fetch(`${import.meta.env.BASE_URL}boundaries.geojson`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(setBorders)
+      .catch((e) => console.warn('map borders unavailable:', e.message))
     fetch(`${API}/forecast/metrics`).then((r) => r.json()).then(setMetrics).catch(() => {})
     fetch(`${API}/health`)
       .then((r) => r.json())
@@ -190,13 +205,35 @@ export default function App() {
       </header>
       <main className="board">
         <section className="panel map-panel">
-          <h2>Network map</h2>
+          <div className="map-head">
+            <h2>Network map</h2>
+            <div className="seg" role="group" aria-label="Theatre">
+              {THEATRES.map((t) => (
+                <button key={t} type="button" className={`btn${t === theatre ? ' primary' : ''}`} aria-pressed={t === theatre} onClick={() => setTheatre(t)}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
           {/* fallback view until /locations arrives: northern India (Ladakh / Arunachal span) */}
           <MapContainer center={[31, 85]} zoom={5} zoomSnap={0.25} zoomControl={false}>
             <TileLayer
               attribution="Tiles &copy; Esri"
               url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
             />
+            {/* place names; borders are drawn from /boundaries.geojson below (Natural Earth, not authoritative, see README) */}
+            <TileLayer
+              zIndex={2}
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+            />
+            {/* clipped Natural Earth lines: national solid dark, state thinner; keyed on kind via className */}
+            {borders && (
+              <GeoJSON
+                data={borders}
+                interactive={false}
+                style={(f) => ({ className: `border ${f.properties.kind}`, fill: false })}
+              />
+            )}
             <FitBounds points={points} />
             {/* status lives in the class (colour + dash in index.css); keyed on status because Leaflet sets className only once */}
             {/* selection halo under the chosen alert's route; blue = selection */}
@@ -225,8 +262,14 @@ export default function App() {
                   radius={RADIUS[w?.status] ?? 6}
                   pathOptions={{ className: w ? `marker ${w.status}` : 'marker depot' }}
                 >
-                  {/* posts cluster tightly at network zoom, so only at-risk posts carry a standing name, with the status word */}
-                  <Tooltip permanent={!!w && w.status !== 'green'} direction="right" offset={[10, 0]} className="map-label">
+                  {/* theatre view: every post is named; in All only at-risk posts are, with the status word */}
+                  <Tooltip
+                    key={theatre}
+                    permanent={theatre !== 'All' || (!!w && w.status !== 'green')}
+                    direction="right"
+                    offset={[12, 0]}
+                    className="map-label"
+                  >
                     {w && w.status !== 'green' ? `${p.name} · ${label(w.status)}` : p.name}
                   </Tooltip>
                   <Popup maxWidth={280} autoPanPadding={[24, 24]}>
