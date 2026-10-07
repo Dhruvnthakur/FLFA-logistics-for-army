@@ -4,8 +4,8 @@
   "per_item": {
     "ammo": {
       "model": {
-        "mae": 0.377,
-        "mape": 24.07
+        "mae": 0.376,
+        "mape": 24.11
       },
       "baseline": {
         "mae": 0.415,
@@ -14,18 +14,18 @@
     },
     "diesel": {
       "model": {
-        "mae": 33.5,
-        "mape": 15.3
+        "mae": 33.864,
+        "mape": 15.4
       },
       "baseline": {
-        "mae": 39.525,
+        "mae": 39.648,
         "mape": 18.76
       }
     },
     "medical": {
       "model": {
-        "mae": 0.151,
-        "mape": 15.96
+        "mae": 0.152,
+        "mape": 16.08
       },
       "baseline": {
         "mae": 0.172,
@@ -34,18 +34,18 @@
     },
     "rations": {
       "model": {
-        "mae": 8.957,
-        "mape": 9.7
+        "mae": 9.069,
+        "mape": 9.79
       },
       "baseline": {
-        "mae": 9.23,
+        "mae": 9.242,
         "mape": 9.95
       }
     },
     "spares": {
       "model": {
         "mae": 0.043,
-        "mape": 12.39
+        "mape": 12.42
       },
       "baseline": {
         "mae": 0.043,
@@ -55,16 +55,16 @@
     "winter_clothing": {
       "model": {
         "mae": 0.046,
-        "mape": 12.78
+        "mape": 12.72
       },
       "baseline": {
         "mae": 0.057,
-        "mape": 15.51
+        "mape": 15.39
       }
     }
   },
   "overall_mape": {
-    "model": 15.03,
-    "baseline": 17.24
+    "model": 15.09,
+    "baseline": 17.22
   }
 }
